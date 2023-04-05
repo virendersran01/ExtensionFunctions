@@ -8,9 +8,18 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import android.content.Context
+import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.text.SpannableStringBuilder
+import android.text.style.ClickableSpan
+import android.text.style.ForegroundColorSpan
+import android.util.Patterns
+import android.view.View
+import android.widget.Toast
+import androidx.annotation.StringRes
+import androidx.fragment.app.Fragment
 
 /** Making this extension function cleans out the code a lot by removing the repetitive
  *  flowWithLifecycle() or repeatOnLifecycle()
@@ -26,12 +35,15 @@ fun <T> Flow<T>.safeCollect(
     flowWithLifecycle(owner.lifecycle).collectLatest { block?.invoke(it) }
 }
 
-/*
-  finds and colors all urls contained in a string
-  @param linkColor color for the url default is blue
-  @param linkClickAction action to perform when user click that link
+
+/**
+ *  Linkify finds and colors all urls contained in a string
+ *
+ * @param linkColor color for the url default is blue
+ * @param linkClickAction action to perform when user click that link
+ * @return
  */
-fun String.linkify(linkColor:Int = Color.BLUE,linkClickAction:((link:String) -> Unit)? = null): SpannableStringBuilder {
+fun String.linkify(linkColor:Int = Color.BLUE, linkClickAction:((link:String) -> Unit)? = null): SpannableStringBuilder {
     val builder = SpannableStringBuilder(this)
     val matcher = Patterns.WEB_URL.matcher(this)
     while(matcher.find()){
@@ -49,12 +61,14 @@ fun String.linkify(linkColor:Int = Color.BLUE,linkClickAction:((link:String) -> 
 }
 
 
-// easily show a toast
+/**
+ * Show toast using string resource
+ * @param msg
+ *  uses -> showToast(R.string.greeting)
+ */
 fun Fragment.showToast(@StringRes msg: Int) {
     Toast.makeText(requireActivity(), msg, Toast.LENGTH_LONG).show()
 }
-
-showToast(R.string.greeting)
 
 fun Context.toast(msg: String, length: Int = Toast.LENGTH_SHORT) {
     Toast.makeText(this, msg, length).show()
@@ -65,7 +79,6 @@ fun Fragment.toast(msg: String, length: Int = Toast.LENGTH_SHORT) {
 }
 
 
-/////
 fun View.visible(animate: Boolean = true) {
     if (animate) {
         animate().alpha(1f).setDuration(300).setListener(object : AnimatorListenerAdapter() {
