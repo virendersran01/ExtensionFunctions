@@ -1,5 +1,6 @@
 package com.virtualstudios.extensionfunctions
 
+import android.animation.ValueAnimator
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -16,9 +17,12 @@ import android.text.SpannableStringBuilder
 import android.text.style.ClickableSpan
 import android.text.style.ForegroundColorSpan
 import android.util.Patterns
+import android.view.Menu
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 
 /** Making this extension function cleans out the code a lot by removing the repetitive
@@ -79,6 +83,11 @@ fun Fragment.toast(msg: String, length: Int = Toast.LENGTH_SHORT) {
 }
 
 
+/**
+ * Visible view with animation
+ *  ex. -> myView.visible()
+ * @param animate
+ */
 fun View.visible(animate: Boolean = true) {
     if (animate) {
         animate().alpha(1f).setDuration(300).setListener(object : AnimatorListenerAdapter() {
@@ -92,12 +101,12 @@ fun View.visible(animate: Boolean = true) {
     }
 }
 
-myView.visible()
 
-///////////
-
-
-// extension property to make menu invisible
+/**
+ * Visibility
+ * extension property to make menu invisible
+ *  ex. -> menu.visibility = boolean
+ */
 var Menu.visibility: Boolean
     get() = false
     set(value) {
@@ -105,12 +114,12 @@ var Menu.visibility: Boolean
             it.isVisible = value
         }
     }
-menu.visibility = boolea
 
-////////
 
-Center title in a toolbar
-
+/**
+ * Center title in a toolbar
+ * ex.-> just say toolbar.centerTitle() that’s it
+ */
 fun Toolbar.centerTitle() {
     doOnLayout {
         children.forEach {
@@ -122,12 +131,14 @@ fun Toolbar.centerTitle() {
     }
 }
 
-just say toolbar.centerTitle() that’s it
+
 
 /**
  * fades out a view making in completely invisible by default
  * @param fadeDuration the duration of fade effect in milliseconds default value is 300ms
  * @param endAlpha the alpha value that view will have after the animation completes default value is 0
+ * ex.->myView.fadeOut() or pass your values if required
+ *
  */
 fun View.fadeOut(fadeDuration:Long = 300,endAlpha:Float = 0f){
     ValueAnimator.ofFloat(1f,endAlpha).apply {
@@ -139,11 +150,12 @@ fun View.fadeOut(fadeDuration:Long = 300,endAlpha:Float = 0f){
     }.start()
 }
 
-myView.fadeOut() or pass your values if required
+
 
 /**
  * fades in a view
  * @param fadeDuration the duration of fade effect in milliseconds default value is 300ms
+ * ex.->myView.fadeIn()
  */
 fun View.fadeIn(fadeDuration:Long = 300){
     ValueAnimator.ofFloat(0f,1f).apply {
@@ -155,13 +167,15 @@ fun View.fadeIn(fadeDuration:Long = 300){
     }.start()
 }
 
-myView.fadeIn()
 
-//////////////////
-
+/**
+ * Get as drawable
+ *ex.->getAsDrawable(id) and it is not nullable also
+ * @param id
+ */
 fun Fragment.getAsDrawable(id:Int) = ContextCompat.getDrawable(this.requireActivity(),id)!!
 
-getAsDrawable(id) and it is not nullable also
+
 
 fun Fragment.getAsColor(id:Int) = ContextCompat.getColor(this.requireActivity(),id)!!
 getAsColor()
