@@ -16,6 +16,7 @@ import android.os.Build
 import android.text.SpannableStringBuilder
 import android.text.style.ClickableSpan
 import android.text.style.ForegroundColorSpan
+import android.util.Log
 import android.util.Patterns
 import android.view.Menu
 import android.view.View
@@ -24,6 +25,13 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
+
+fun Any.logDebug(tag: String = "", message: String) {
+    if (BuildConfig.DEBUG) {
+        // Log.d(this::class.java.simpleName, message)
+        Log.d(tag.ifEmpty { "lOGD" }, message)
+    }
+}
 
 /** Making this extension function cleans out the code a lot by removing the repetitive
  *  flowWithLifecycle() or repeatOnLifecycle()
@@ -1870,3 +1878,7 @@ just say launchIO { // your code} , launchMain{ // your code}
     }
 
 
+    fun Date.format(format: String): String = SimpleDateFormat(format).format(this)
+    /*val date = Date()
+    val formattedDate = date.format("yyyy-MM-dd")
+    println(formattedDate) // prints something like "2023-04-08"*/
