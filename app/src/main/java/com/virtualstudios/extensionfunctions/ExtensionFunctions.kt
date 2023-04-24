@@ -1,5 +1,6 @@
 package com.virtualstudios.extensionfunctions
 
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.flowWithLifecycle
@@ -1882,3 +1883,147 @@ just say launchIO { // your code} , launchMain{ // your code}
     /*val date = Date()
     val formattedDate = date.format("yyyy-MM-dd")
     println(formattedDate) // prints something like "2023-04-08"*/
+
+
+
+    /**
+     * On click
+     * uses -> button.onClick { perform action here}
+     * @param action
+     * @receiver
+     */
+    fun View.onClick(action: () -> Unit) {
+        setOnClickListener { action() }
+    }
+
+
+    /**
+     * Animate property
+     *
+     * @param property
+     * @param fromValue
+     * @param toValue
+     * @param duration
+     * @param onComplete
+     * @receiver
+     *
+     * uses -> view.animateProperty(View.TRANSLATION_X,fromValue = 0f,toValue = 100f,duration = 500,onComplete = { onAnimationComplete() })
+     */
+    fun View.animateProperty(
+        property: KProperty0<Float>,
+        fromValue: Float,
+        toValue: Float,
+        duration: Long,
+        onComplete: () -> Unit = {}
+    ) {
+        val animator = ObjectAnimator.ofFloat(this, property.name, fromValue, toValue).apply {
+            setDuration(duration)
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator?) {
+                    onComplete()
+                }
+            })
+        }
+        animator.start()
+    }
+
+
+    /**
+     * Bind data
+     *
+     * @param T
+     * @param data
+     * @param layoutRes
+     * @param bindFunc
+     * @param clickListener
+     * @receiver
+     * uses -> recyclerView.bindData(data = listOf("item1", "item2", "item3"),layoutRes = R.layout.list_item,bindFunc = { view, item -> view.findViewById<TextView>(R.id.text_view).text = item },clickListener = { item -> onItemClick(item) })
+     *
+     *
+     *
+     */
+    fun <T> RecyclerView.bindData(
+        data: List<T>,
+        layoutRes: Int,
+        bindFunc: (View, T) -> Unit,
+        clickListener: ((T) -> Unit)? = null
+    ) {
+        adapter = object : RecyclerView.Adapter<ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+                val view = LayoutInflater.from(parent.context).inflate(layoutRes, parent, false)
+                return ViewHolder(view)
+            }
+            override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+                val item = data[position]
+                bindFunc(holder.itemView, item)
+                clickListener?.let { listener ->
+                    holder.itemView.setOnClickListener { listener(item) }
+                }
+            }
+            override fun getItemCount() = data.size
+            inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
+        }
+    }
+
+
+    /**
+     * Run on background thread
+     *
+     * @param T
+     * @param backgroundFunc
+     * @param callback
+     * @receiver
+     * @receiver
+     *
+     *  uses -> runOnBackgroundThread({ doExpensiveCalculation() },{ onResultLoaded(it) })
+     */
+    fun <T> runOnBackgroundThread(backgroundFunc: () -> T, callback: (T) -> Unit) {
+        val handler = Handler(Looper.getMainLooper())
+        Thread {
+            val result = backgroundFunc()
+            handler.post { callback(result) }
+        }.start()
+    }
+
+
+    /**
+     * With permissions
+     *
+     * @param permissions
+     * @param callback
+     * @receiver
+     *
+     * uses -> withPermissions(Manifest.permission.CAMERA,Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.WRITE_EXTERNAL_STORAGE) {// Code to execute when permissions are granted}
+     */
+    fun Activity.withPermissions(vararg permissions: String, callback: () -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val ungrantedPermissions = permissions.filter {
+                checkSelfPermission(it) == PackageManager.PERMISSION_DENIED
+            }
+            if (ungrantedPermissions.isEmpty()) {
+                // All permissions are granted, execute callback
+                callback()
+            } else {
+                // Request permissions
+                requestPermissions(ungrantedPermissions.toTypedArray(), 0)
+            }
+        } else {
+            // Pre-Marshmallow devices, execute callback
+            callback()
+        }
+    }
+
+
+    /**
+     * Validate
+     *
+     * @param validationFunc
+     * @receiver
+     * @return
+     *
+     * uses -> val input = "example input"
+     * val isInputValid = input.validate { input -> input.isNotEmpty() }
+     */
+    fun String.validate(validationFunc: (String) -> Boolean): Boolean {
+        return validationFunc(this)
+    }
