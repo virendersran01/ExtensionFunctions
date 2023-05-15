@@ -1,5 +1,7 @@
 package com.virtualstudios.extensionfunctions
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import androidx.lifecycle.LifecycleOwner
@@ -10,6 +12,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -25,8 +28,26 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.viewbinding.BuildConfig
+import android.graphics.Insets
+import android.graphics.Rect
+import android.util.DisplayMetrics
+import android.util.Size
+import android.view.WindowInsets
+import android.view.WindowManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.core.content.ContextCompat
 
+/**
+ * Log debug
+ *
+ * @param tag
+ * @param message
+ */
 fun Any.logDebug(tag: String = "", message: String) {
     if (BuildConfig.DEBUG) {
         // Log.d(this::class.java.simpleName, message)
@@ -232,6 +253,31 @@ inline fun <reified T : Any> Context.launchActivity(
 
 inline fun <reified T : Any> newIntent(context: Context): Intent =
     Intent(context, T::class.java)
+
+/**
+ * Start activity
+ *
+ * @param cls
+ * @param finishCallingActivity
+ * @param block
+ *
+ * uses ->
+ * startActivity(MainActivity::class.java) // Without Intent modification
+ * startActivity(MainActivity::class.java) {
+ * // You can access the intent object in this block
+ * putExtra("key", "value")
+ * }
+ */
+fun Activity.startActivity(
+    cls: Class<*>,
+    finishCallingActivity: Boolean = true,
+    block: (Intent.() -> Unit)? = null
+) {
+    val intent = Intent(this, cls)
+    block?.invoke(intent)
+    startActivity(intent)
+    if (finishCallingActivity) finish()
+}
 
 /**
  * Kotlin Extensions for simpler, easier way
@@ -2027,3 +2073,177 @@ just say launchIO { // your code} , launchMain{ // your code}
     fun String.validate(validationFunc: (String) -> Boolean): Boolean {
         return validationFunc(this)
     }
+
+    /**
+     *
+     * uses -> val name = etName.value
+     */
+    val EditText.value
+        get() = text?.toString() ?: ""
+
+
+    /**
+     * Is network available
+     *
+     * @return
+     *
+     * uses ->
+     * if (isNetworkAvailable()) {
+     * // Called when network is available
+     * } else {
+     * // Called when network not available
+     * }
+     *
+     */
+    fun Context.isNetworkAvailable(): Boolean {
+        val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork)
+        return if (capabilities != null) {
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        } else false
+    }
+
+    fun Fragment.isNetworkAvailable() = requireContext().isNetworkAvailable()
+
+
+    /**
+     * Is permission granted
+     *
+     * @param permission
+     *
+     * uses ->
+     * if (isPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)) {
+     * // Block runs if permission is granted
+     * } else {
+     * // Ask for permission
+     * }
+     *
+     */
+    fun Context.isPermissionGranted(permission: String) = run {
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+
+    fun String.removeAllWhitespaces(): String {
+        return this.replace("\\s+".toRegex(), "")
+    }
+
+    fun String.removeDuplicateWhitespaces(): String {
+        return this.replace("\\s+".toRegex(), " ")
+    }
+
+
+    /**
+     * To editable
+     *
+     * @return
+     * uses -> etName.text = "First name".toEditable()
+     *
+     */
+    fun String.toEditable(): Editable = Editable.Factory.getInstance().newEditable(this)
+
+
+    /**
+     * Screen size
+     *
+     * uses ->
+     * val size = screenSize
+     * val deviceHeight = size.height
+     * val deviceWidth = size.width
+     */
+    val Context.screenSize: Size
+    get() {
+        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+        val size = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val metrics = windowManager.currentWindowMetrics
+            val windowInsets = metrics.windowInsets
+            val insets: Insets = windowInsets.getInsetsIgnoringVisibility(
+                WindowInsets.Type.navigationBars()
+                        or WindowInsets.Type.displayCutout()
+            )
+
+            val insetsWidth: Int = insets.right + insets.left
+            val insetsHeight: Int = insets.top + insets.bottom
+            val bounds: Rect = metrics.bounds
+            Size(
+                bounds.width() - insetsWidth,
+                bounds.height() - insetsHeight
+            )
+        } else {
+            val displayMetrics = DisplayMetrics()
+            windowManager.defaultDisplay?.getMetrics(displayMetrics)
+            val height = displayMetrics.heightPixels
+            val width = displayMetrics.widthPixels
+            Size(width, height)
+        }
+        return size
+    }
+
+
+    val Context.windowManager
+    get() = ContextCompat.getSystemService(this, WindowManager::class.java)
+
+    val Context.connectivityManager
+    get() = ContextCompat.getSystemService(this, ConnectivityManager::class.java)
+
+    val Context.notificationManager
+    get() = ContextCompat.getSystemService(this, NotificationManager::class.java)
+
+    val Context.downloadManager
+    get() = ContextCompat.getSystemService(this, DownloadManager::class.java)
+
+
+
+    /**
+     * Copy to clipboard
+     *
+     * @param context
+     *
+     * uses -> "This is clipboard".copyToClipboard(context)
+     *
+     *
+     */
+    fun String.copyToClipboard(context: Context) {
+        val clipboardManager = ContextCompat.getSystemService(context, ClipboardManager::class.java)
+        val clip = ClipData.newPlainText("clipboard", this)
+        clipboardManager?.setPrimaryClip(clip)
+    }
+
+
+    @file:OptIn(ExperimentalContracts::class)
+
+    import kotlin.contracts.ExperimentalContracts
+            import kotlin.contracts.contract
+
+    fun Boolean?.isTrue(): Boolean {
+        contract {
+            returns(true) implies (this@isTrue != null)
+        }
+        return this == true
+    }
+
+    fun Boolean?.isFalse(): Boolean {
+        contract {
+            returns(true) implies (this@isFalse != null)
+        }
+        return this == false
+    }
+
+    val Boolean?.orTrue: Boolean
+    get() = this ?: true
+
+    val Boolean?.orFalse: Boolean
+    get() = this ?: false
+
+    /*lateinit var any: Boolean? // Assume that, this property is already assigned
+    if (any.isTrue()) {
+        // Run when any is true only
+    }
+    if (any.isFalse()) {
+        // Run when any is false only
+    }
+    val any1: Boolean = any.orTrue // If any is null then any1 = true otherwise any1 = any
+    val any2: Boolean = any.orFalse // If any is null then any1 = false otherwise any1 = any*/
