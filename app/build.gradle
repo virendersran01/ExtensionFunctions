@@ -85,5 +85,7 @@ dependencies {
     //Soft Keyboard visibility listener
     implementation 'net.yslibrary.keyboardvisibilityevent:keyboardvisibilityevent:3.0.0-RC3'
 
+    implementation 'com.googlecode.libphonenumber:libphonenumber:8.13.13'
+
 
 }

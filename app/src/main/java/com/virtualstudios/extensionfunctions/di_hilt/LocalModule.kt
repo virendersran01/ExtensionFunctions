@@ -1,5 +1,6 @@
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
 import com.virtualstudios.extensionfunctions.Constants
 import com.virtualstudios.extensionfunctions.local.AppUserPreferences
 import dagger.Module
@@ -25,5 +26,9 @@ object LocalModule {
     fun provideAppSharedPreferences(
         sharedPreferences: SharedPreferences
     ) = AppUserPreferences(sharedPreferences)
+
+    @Provides
+    fun provideConnectivityManager(@ApplicationContext context: Context): ConnectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
 }
