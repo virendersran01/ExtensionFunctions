@@ -25,8 +25,10 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Parcelable
 import android.text.Editable
+import android.text.Html
 import android.text.InputFilter
 import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.TextUtils
 import android.text.TextWatcher
 import android.text.format.DateUtils
@@ -252,6 +254,16 @@ fun Fragment.hideSoftKeyboard() {
     val imm =
         requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
     imm.hideSoftInputFromWindow(view?.windowToken, 0)
+}
+
+fun View.hideKeyboardTry(): Boolean {
+    try {
+        val inputMethodManager =
+            context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        return inputMethodManager.hideSoftInputFromWindow(windowToken, 0)
+    } catch (ignored: RuntimeException) {
+    }
+    return false
 }
 
 
@@ -1371,3 +1383,13 @@ val Context.notificationManager
 
 val Context.downloadManager
     get() = ContextCompat.getSystemService(this, DownloadManager::class.java)
+
+
+fun fromHtml(source: String): Spanned {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        Html.fromHtml(source, Html.FROM_HTML_MODE_LEGACY)
+    } else {
+        @Suppress("DEPRECATION")
+        Html.fromHtml(source)
+    }
+}

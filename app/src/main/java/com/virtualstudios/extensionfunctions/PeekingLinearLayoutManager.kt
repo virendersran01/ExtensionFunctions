@@ -46,3 +46,5 @@ class PeekingLinearLayoutManager : LinearLayoutManager {
 
     private val ratio = 0.6f
 }
+
+
