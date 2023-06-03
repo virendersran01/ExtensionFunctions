@@ -2,6 +2,8 @@ package com.virtualstudios.extensionfunctions.remote
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
+import retrofit2.HttpException
+import java.io.IOException
 
 @Keep
 data class ApiResponse<T>(
@@ -84,6 +86,10 @@ suspend fun <T> safeApiCall(apiCall: suspend () -> ApiResponse<T>): ApiCallResul
             1 -> ApiCallResult.Success(apiResponse.data)
             else -> ApiCallResult.Error(Exception(), apiResponse.message)
         }
+    } catch(e: HttpException) {
+        ApiCallResult.Error(e, e.localizedMessage ?: "An unexpected error occurred")
+    } catch(e: IOException) {
+        ApiCallResult.Error(e,"Couldn't reach server. Check internet connection")
     } catch (exception: Exception) {
         ApiCallResult.Error(exception, exception.message.toString())
     }
