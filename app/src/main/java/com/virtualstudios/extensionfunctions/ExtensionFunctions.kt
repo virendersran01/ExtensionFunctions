@@ -27,13 +27,18 @@ import android.os.Parcelable
 import android.text.Editable
 import android.text.Html
 import android.text.InputFilter
+import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextUtils
 import android.text.TextWatcher
 import android.text.format.DateUtils
+import android.text.style.BackgroundColorSpan
 import android.text.style.ClickableSpan
 import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.StrikethroughSpan
+import android.text.style.SuperscriptSpan
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Patterns
@@ -51,6 +56,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.AnimRes
+import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
 import androidx.annotation.DimenRes
 import androidx.annotation.DrawableRes
@@ -59,11 +65,13 @@ import androidx.annotation.RawRes
 import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.text.toSpannable
 import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
@@ -71,6 +79,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
@@ -97,6 +106,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.reflect.KProperty0
 
 /**
@@ -1392,4 +1404,65 @@ fun fromHtml(source: String): Spanned {
         @Suppress("DEPRECATION")
         Html.fromHtml(source)
     }
+}
+
+/*fun bearingBetweenLocations(latLng1: LatLng, latLng2: LatLng): Float {
+    val pi = 3.14159
+    val lat1 = latLng1.latitude * pi / 180
+    val long1 = latLng1.longitude * pi / 180
+    val lat2 = latLng2.latitude * pi / 180
+    val long2 = latLng2.longitude * pi / 180
+    val dLon = long2 - long1
+    val y = sin(dLon) * cos(lat2)
+    val x = cos(lat1) * sin(lat2) - (sin(lat1)
+            * cos(lat2) * cos(dLon))
+    var bearing = atan2(y, x)
+    bearing = Math.toDegrees(bearing)
+    bearing = (bearing + 360) % 360
+    return bearing.toFloat()
+}*/
+
+fun View.showHideView(state: Boolean) = run { if (state) visible() else gone() }
+
+fun Context.getDrawableExt(@DrawableRes id: Int) = AppCompatResources.getDrawable(this, id)
+
+
+private fun CharSequence.toSpannableStringBuilder() = SpannableStringBuilder(this)
+
+fun SpannableStringBuilder.spanText(span: Any): SpannableStringBuilder {
+    setSpan(span, 0, length, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE)
+    return this
+}
+
+fun CharSequence.foregroundColor(@ColorInt color: Int): SpannableStringBuilder {
+    val span = ForegroundColorSpan(color)
+    return toSpannableStringBuilder().spanText(span)
+}
+
+fun CharSequence.backgroundColor(@ColorInt color: Int): SpannableStringBuilder {
+    val span = BackgroundColorSpan(color)
+    return toSpannableStringBuilder().spanText(span)
+}
+
+fun CharSequence.relativeSize(size: Float): SpannableStringBuilder {
+    val span = RelativeSizeSpan(size)
+    return toSpannableStringBuilder().spanText(span)
+}
+
+fun CharSequence.superScript(): SpannableStringBuilder {
+    val span = SuperscriptSpan()
+    return toSpannableStringBuilder().spanText(span)
+}
+
+fun CharSequence.strike(): SpannableStringBuilder {
+    val span = StrikethroughSpan()
+    return toSpannableStringBuilder().spanText(span)
+}
+
+operator fun SpannableStringBuilder.plus(other: SpannableStringBuilder): SpannableStringBuilder {
+    return this.append(other)
+}
+
+operator fun SpannableStringBuilder.plus(other: CharSequence): SpannableStringBuilder {
+    return this + other.toSpannable()
 }
