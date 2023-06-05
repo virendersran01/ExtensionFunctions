@@ -2,6 +2,8 @@ package com.virtualstudios.extensionfunctions.remote
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -104,5 +106,40 @@ suspend fun <T> safeApiCallPagination(apiCall: suspend () -> ApiResponsePaginati
         }
     } catch (exception: Exception) {
         ApiCallResult.Error(exception, exception.message.toString())
+    }
+}
+
+sealed class Response<out R> {
+    data class Success<out T>(val data: T) : Response<T>()
+    data class Error(val errorMessage: String, val throwable: Throwable) : Response<Nothing>()
+}
+
+suspend fun <T> getResponse(invoke: suspend () -> T): Response<T> {
+    return runCatching {
+        Response.Success(invoke())
+    }.getOrElse {
+        Response.Error("Error", it)
+    }
+}
+
+internal fun  singleSourceOfTruth (
+    getLocalData: suspend () -> List<Any>,
+    getRemoteData: suspend () -> List<Any>,
+    saveDataToLocal: suspend (List<Any>) -> Unit,
+): Flow<Response<List<Any>>> = flow {
+    val localData = getResponse { getLocalData() }
+    if (localData is Response.Success && localData.data.isNotEmpty()) {
+        emit(localData)
+    } else {
+        val remoteData = getResponse { getRemoteData() }
+        if (remoteData is Response.Success) {
+            if (remoteData.data.isNotEmpty()) {
+                saveDataToLocal(remoteData.data)
+                val localDataUpdated = getResponse { getLocalData() }
+                emit(localDataUpdated)
+            }
+        } else {
+            emit(Response.Error("Error", (remoteData as Response.Error).throwable))
+        }
     }
 }

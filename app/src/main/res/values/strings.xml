@@ -1,3 +1,37 @@
 <resources>
     <string name="app_name">ExtensionFunctions</string>
+    <string name="post_notifications">post_notifications</string>
+    <string name="wake_lock">wake lock\n</string>
+    <string name="internet">internet</string>
+    <string name="access_network_state" />
+    <string name="schedule_exact_alarm" />
+    <string name="read_calendar" />
+    <string name="write_calendar" />
+    <string name="read_external_storage" />
+    <string name="read_media_images" />
+    <string name="read_media_video" />
+    <string name="read_media_audio" />
+    <string name="write_external_storage" />
+    <string name="camera" />
+    <string name="read_phone_state" />
+    <string name="read_phone_numbers" />
+    <string name="get_accounts" />
+    <string name="foreground_service" />
+    <string name="access_fine_location" />
+    <string name="receive_boot_completed" />
+    <string name="read_contacts" />
+    <string name="record_audio" />
+    <string name="access_wifi_state" />
+    <string name="modify_audio_settings" />
+    <string name="bluetooth" />
+    <string name="bluetooth_connect" />
+    <string name="activity_recognition" />
+    <string name="use_full_screen_intent" />
+    <string name="vibrate" />
+    <string name="permission_title" />
+    <string name="permission_description_permanently">%s </string>
+    <string name="no_thanks" />
+    <string name="go_to_settings" />
+    <string name="permission_description">%s </string>
+    <string name="button_ok" />
 </resources>

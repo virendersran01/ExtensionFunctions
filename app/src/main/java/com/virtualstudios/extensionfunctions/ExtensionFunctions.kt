@@ -9,21 +9,28 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Insets
 import android.graphics.Rect
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Parcelable
+import android.os.SystemClock
 import android.text.Editable
 import android.text.Html
 import android.text.InputFilter
@@ -44,12 +51,14 @@ import android.util.Log
 import android.util.Patterns
 import android.util.Size
 import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
+import android.webkit.WebView
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -69,6 +78,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.toSpannable
@@ -77,8 +87,11 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.liveData
+import com.bumptech.glide.Glide
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
@@ -86,6 +99,7 @@ import com.google.gson.JsonSyntaxException
 import com.google.i18n.phonenumbers.NumberParseException
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.virtualstudios.extensionfunctions.BuildConfig
+import com.virtualstudios.extensionfunctions.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -102,6 +116,7 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -852,6 +867,37 @@ inline fun View.onDebouncedListener(
 
 /**
  * On click
+ *
+ * @param debounceDuration
+ * @param action
+ * @receiver
+ * uses -> button.onClick(debounceDuration = 500L) { //code }
+ */
+fun View.onClick(debounceDuration: Long = 300L, action: (View) -> Unit) {
+    setOnClickListener(DebouncedOnClickListener(debounceDuration) {
+        action(it)
+    })
+}
+
+private class DebouncedOnClickListener(
+    private val debounceDuration: Long,
+    private val clickAction: (View) -> Unit
+) : View.OnClickListener {
+
+    private var lastClickTime: Long = 0
+
+    override fun onClick(v: View) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastClickTime >= debounceDuration) {
+            lastClickTime = now
+            clickAction(v)
+        }
+    }
+}
+
+
+/**
+ * On click
  * uses -> button.onClick { perform action here}
  * @param action
  * @receiver
@@ -1465,4 +1511,197 @@ operator fun SpannableStringBuilder.plus(other: SpannableStringBuilder): Spannab
 
 operator fun SpannableStringBuilder.plus(other: CharSequence): SpannableStringBuilder {
     return this + other.toSpannable()
+}
+
+/**
+ * With not null
+ *
+ * @param T
+ * @param R
+ * @param block
+ * @receiver
+ * @return
+ * uses -> val nullableValue: String? = null
+ *  nullableValue.withNotNull { value -> //code }
+ *
+ */
+inline fun <T : Any, R> T?.withNotNull(block: (T) -> R): R? {
+    return this?.let(block)
+}
+
+/**
+ * To live data
+ *
+ * @param T
+ * @return
+ *
+ */
+fun <T> Flow<T>.toLiveData(): LiveData<T> {
+    return liveData {
+        collect {
+            emit(it)
+        }
+    }
+}
+
+/**
+ * Not empty
+ *
+ * @param T
+ * @return
+ *  uses -> if (list.notEmpty()) { //code }
+ *
+ */
+fun <T> Collection<T>?.notEmpty(): Boolean {
+    return this?.isNotEmpty() == true
+}
+
+/**
+ * Get or throw
+ *
+ * @param K
+ * @param V
+ * @param key
+ * @return
+ * uses -> val map = mapOf("key1" to "value1", "key2" to "value2")
+ * val value = map.getOrThrow("key3")
+ */
+fun <K, V> Map<K, V>.getOrThrow(key: K): V {
+    return this[key] ?: throw NoSuchElementException("Key $key not found in map")
+}
+
+fun Int.toFormattedString(): String {
+    return NumberFormat.getInstance().format(this)
+}
+
+fun Long.toFormattedString(): String {
+    return NumberFormat.getInstance().format(this)
+}
+
+fun Date.toFormattedString(): String {
+    return SimpleDateFormat.getDateInstance().format(this)
+}
+
+/**
+ * To bitmap
+ *
+ * @return
+ * uses -> val drawable = ContextCompat.getDrawable(context, R.drawable.my_drawable)
+ * val bitmap = drawable.toBitmap()
+ */
+fun Drawable.toBitmap(): Bitmap {
+    if (this is BitmapDrawable) {
+        return bitmap
+    }
+
+    val bitmap = Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    setBounds(0, 0, canvas.width, canvas.height)
+    draw(canvas)
+
+    return bitmap
+}
+
+
+/**
+ * To uri
+ *
+ * @return
+ * uses ->val filePath = "/storage/emulated/0/Download/my_file.pdf"
+ * val fileUri = filePath.toUri()
+ */
+fun String.toUri(): Uri {
+    return Uri.parse(this)
+}
+
+/**
+ * Apply if
+ *
+ * @param T
+ * @param condition
+ * @param block
+ * @receiver
+ * @return
+ * uses -> val number = 5
+ * val formattedNumber = number.applyIf(number > 10) { toFormattedString() }
+ *
+ */
+inline fun <T> T.applyIf(condition: Boolean, block: T.() -> Unit): T {
+    return if (condition) {
+        this.apply(block)
+    } else {
+        this
+    }
+}
+
+fun String?.isNullOrEmpty(): Boolean {
+    return this == null || this.isEmpty()
+}
+
+fun EditText.afterTextChanged(afterTextChanged: (String) -> Unit) {
+    addTextChangedListener(object : TextWatcher {
+        override fun afterTextChanged(s: Editable) {
+            afterTextChanged.invoke(s.toString())
+        }
+
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+    })
+}
+
+fun ImageView.loadImageWithGlide(url: String) {
+    Glide.with(this)
+        .load(url)
+        .placeholder(R.drawable.ic_launcher_foreground)
+        .error(R.drawable.ic_launcher_background)
+        .into(this)
+}
+
+inline fun <reified T : Any> SharedPreferences.get(key: String, defaultValue: T? = null): T? {
+    val value = when (T::class) {
+        String::class -> getString(key, defaultValue as? String) as T?
+        Int::class -> getInt(key, defaultValue as? Int ?: -1) as T?
+        Long::class -> getLong(key, defaultValue as? Long ?: -1L) as T?
+        Float::class -> getFloat(key, defaultValue as? Float ?: -1f) as T?
+        Boolean::class -> getBoolean(key, defaultValue as? Boolean ?: false) as T?
+        else -> throw IllegalArgumentException("Unsupported type: ${T::class.java}")
+    }
+    return value
+}
+
+inline fun <reified T : Any> SharedPreferences.put(key: String, value: T?) {
+    val editor = edit()
+    when (T::class) {
+        String::class -> editor.putString(key, value as? String)
+        Int::class -> editor.putInt(key, value as? Int ?: -1)
+        Long::class -> editor.putLong(key, value as? Long ?: -1L)
+        Float::class -> editor.putFloat(key, value as? Float ?: -1f)
+        Boolean::class -> editor.putBoolean(key, value as? Boolean ?: false)
+        else -> throw IllegalArgumentException("Unsupported type: ${T::class.java}")
+    }
+    editor.apply()
+}
+
+fun ViewGroup.inflate(layoutRes: Int): View {
+    return LayoutInflater.from(context).inflate(layoutRes, this, false)
+}
+
+fun Context.getScreenWidth(): Int {
+    val displayMetrics = resources.displayMetrics
+    return displayMetrics.widthPixels
+}
+
+fun Date.getFormattedDate(): String {
+    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    return dateFormat.format(this)
+}
+
+fun Context.isPermissionGranted(permission: String): Boolean {
+    return ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+}
+
+fun WebView.loadUrl(url: String?) {
+    if (!url.isNullOrEmpty()) {
+        loadUrl(url)
+    }
 }

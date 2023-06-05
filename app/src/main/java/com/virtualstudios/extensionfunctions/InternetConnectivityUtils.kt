@@ -11,6 +11,8 @@ import androidx.annotation.RequiresApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 object ConnectedCompat {
@@ -166,3 +168,50 @@ private fun Context.observeConnectivityAsFlow(): Flow<NetworkConnectionState> = 
         connectivityManager.unregisterNetworkCallback(callback)
     }
 }
+
+class NetworkObserver(context: Context) {
+    private val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun observe() = callbackFlow {
+        val callback = object: ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                launch { trySend(Status.Available) }
+            }
+
+            override fun onUnavailable() {
+                super.onUnavailable()
+                launch { trySend(Status.Unavailable) }
+            }
+
+            override fun onLosing(network: Network, maxMsToLive: Int) {
+                super.onLosing(network, maxMsToLive)
+                launch { trySend(Status.Losing) }
+            }
+
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                launch { trySend(Status.Lost) }
+            }
+        }
+
+        cm.registerDefaultNetworkCallback(callback)
+
+        awaitClose { cm.unregisterNetworkCallback(callback) }
+    }.distinctUntilChanged()
+
+    enum class Status {
+        Available,
+        Unavailable,
+        Losing,
+        Lost
+    }
+}
+
+/*
+lifecycleScope.launchWhenStarted {
+    networkObserver.observe().collectLatest {
+        binding.tvConnectionStatus.text = "Connection status: ${it}"
+    }
+}*/
