@@ -30,6 +30,19 @@ object NetworkModule {
         }
     }
 
+    @Provides
+    fun providesOkhttp():OkHttpClient{
+        val okhttp = OkHttpClient.Builder()
+
+        if (BuildConfig.DEBUG) {
+            val logger = HttpLoggingInterceptor()
+            logger.setLevel(HttpLoggingInterceptor.Level.BODY)
+
+            okhttp.addInterceptor(logger)
+        }
+        return okhttp.build()
+    }
+
     @Singleton
     @Provides
     fun provideHttpClient(
@@ -39,7 +52,9 @@ object NetworkModule {
             .Builder().apply {
                 readTimeout(60, TimeUnit.SECONDS)
                 connectTimeout(60, TimeUnit.SECONDS)
-                addInterceptor(httpLoggingInterceptor)
+                if (BuildConfig.DEBUG) {
+                    addInterceptor(httpLoggingInterceptor)
+                }
                 addInterceptor { chain ->
                     var request: Request = chain.request()
                     val url: HttpUrl = request.url.newBuilder().apply {
