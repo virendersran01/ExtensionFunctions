@@ -1705,3 +1705,8 @@ fun WebView.loadUrl(url: String?) {
         loadUrl(url)
     }
 }
+
+fun String.formatPhoneNumber(): String {
+    val cleanedNumber = replace("[^0-9]".toRegex(), "")
+    return cleanedNumber.chunked(3).joinToString("-")
+}
