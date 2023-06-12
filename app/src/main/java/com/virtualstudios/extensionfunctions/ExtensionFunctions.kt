@@ -116,6 +116,7 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -1709,4 +1710,15 @@ fun WebView.loadUrl(url: String?) {
 fun String.formatPhoneNumber(): String {
     val cleanedNumber = replace("[^0-9]".toRegex(), "")
     return cleanedNumber.chunked(3).joinToString("-")
+}
+
+/**
+ * Decimal format
+ * uses -> 1.decimalFormat("0.0") -> 1.0
+ * @param pattern
+ * @return
+ */
+fun Any.decimalFormat(pattern: String): String{
+    val decimalFormat = DecimalFormat(pattern)
+    return decimalFormat.format(this)
 }
