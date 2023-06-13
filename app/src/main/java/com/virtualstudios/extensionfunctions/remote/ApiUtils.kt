@@ -61,7 +61,8 @@ sealed class Resource<T>(val data: T? = null, val message: String? = null) {
 
 @Keep
 sealed class UiState<out T> {
-    class Loading<T> : UiState<T>()
+    object Init : UiState<Nothing>()
+    object Loading : UiState<Nothing>()
     data class Success<T>(val data: T?) : UiState<T>()
     data class Error<T>(val exception: Exception = Exception(), val errorMessage: String = "") : UiState<T>()
     override fun toString(): String {
@@ -69,6 +70,7 @@ sealed class UiState<out T> {
             is Success<*> -> "Success[data=$data]"
             is Error -> "Error[exception=$exception, message=$errorMessage] "
             is Loading -> "Loading"
+            Init -> "initial state for using in StateFlow"
         }
     }
 
