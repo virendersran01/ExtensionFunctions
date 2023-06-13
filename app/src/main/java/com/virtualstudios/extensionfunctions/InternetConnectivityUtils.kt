@@ -1,6 +1,8 @@
 package com.virtualstudios.extensionfunctions
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -8,6 +10,7 @@ import android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET
 import android.net.NetworkRequest
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -213,5 +216,138 @@ class NetworkObserver(context: Context) {
 lifecycleScope.launchWhenStarted {
     networkObserver.observe().collectLatest {
         binding.tvConnectionStatus.text = "Connection status: ${it}"
+    }
+}*/
+
+
+class NetworkMonitor2(context: Context) {
+
+    private val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    fun isNetworkAvailable(): Boolean {
+        val networkInfo = connectivityManager.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
+    }
+
+    fun registerNetworkCallback(networkCallback: ConnectivityManager.NetworkCallback) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        } else {
+            val builder = NetworkRequest.Builder()
+            connectivityManager.registerNetworkCallback(builder.build(), networkCallback)
+        }
+    }
+
+    fun unregisterNetworkCallback(networkCallback: ConnectivityManager.NetworkCallback) {
+        connectivityManager.unregisterNetworkCallback(networkCallback)
+    }
+}
+
+val networkCallback = object : ConnectivityManager.NetworkCallback() {
+
+    override fun onAvailable(network: Network) {
+        // Called when a network is available
+    }
+
+    override fun onLost(network: Network) {
+        // Called when a network is lost
+    }
+}
+
+/*val networkMonitor = NetworkMonitor2(context)
+networkMonitor.registerNetworkCallback(networkCallback)
+
+networkMonitor2.unregisterNetworkCallback(networkCallback)
+*/
+
+//Checking for internet connectivity using a BroadcastReceiver:
+
+class ConnectivityReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.activeNetworkInfo
+        if (networkInfo != null && networkInfo.isConnected) {
+            // internet connection is available
+        } else {
+            // internet connection is not available
+        }
+    }
+}
+
+
+//Using a callback interface to notify when internet connectivity changes:
+interface ConnectivityListener {
+    fun onConnectivityChanged(isConnected: Boolean)
+}
+
+class ConnectivityMonitor(private val context: Context) {
+
+    private val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    private val callbackList = mutableListOf<ConnectivityListener>()
+
+    private val connectivityCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            notifyListeners(true)
+        }
+
+        override fun onLost(network: Network) {
+            notifyListeners(false)
+        }
+    }
+
+    fun registerListener(listener: ConnectivityListener) {
+        callbackList.add(listener)
+    }
+
+    fun unregisterListener(listener: ConnectivityListener) {
+        callbackList.remove(listener)
+    }
+
+    fun startMonitoring() {
+        val builder = NetworkRequest.Builder()
+        connectivityManager.registerNetworkCallback(builder.build(), connectivityCallback)
+    }
+
+    fun stopMonitoring() {
+        connectivityManager.unregisterNetworkCallback(connectivityCallback)
+    }
+
+    private fun notifyListeners(isConnected: Boolean) {
+        for (listener in callbackList) {
+            listener.onConnectivityChanged(isConnected)
+        }
+    }
+}
+
+//Using a library like RxAndroid to monitor network connectivity:
+
+/*
+class MainActivity2 : AppCompatActivity() {
+
+    private val connectivityObservable = ConnectivityObservable()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        connectivityObservable.observe(this)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { isConnected ->
+                if (isConnected) {
+                    // internet connection is available
+                } else {
+                    // internet connection is not available
+                }
+            }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        connectivityObservable.stopObserving(this)
     }
 }*/
