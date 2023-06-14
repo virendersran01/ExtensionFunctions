@@ -82,6 +82,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.toSpannable
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
@@ -1721,4 +1724,47 @@ fun String.formatPhoneNumber(): String {
 fun Any.decimalFormat(pattern: String): String{
     val decimalFormat = DecimalFormat(pattern)
     return decimalFormat.format(this)
+}
+
+//https://github.com/sohaibkhaa/FullScreenSample.git
+fun Activity.enableFullScreen() {
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+}
+
+fun Activity.disableFullScreen() {
+    WindowCompat.setDecorFitsSystemWindows(window, true)
+}
+
+fun Activity.setStatusBarColor(color: Int) {
+    window.statusBarColor = ContextCompat.getColor(this, color)
+}
+
+fun Activity.setNavBarColor(color: Int) {
+    window.navigationBarColor = ContextCompat.getColor(this, color)
+}
+
+fun View.applyWindowInsets() {
+    ViewCompat.setOnApplyWindowInsetsListener(this) { view, windowInsets ->
+        val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+        // Apply the insets as a margin to the view. Here the system is setting
+        // only the bottom, left, and right dimensions, but apply whichever insets are
+        // appropriate to your layout. You can also update the view padding
+        // if that's more appropriate.
+        (layoutParams as ViewGroup.MarginLayoutParams).setMargins(
+            insets.left, insets.top, insets.right, insets.bottom
+        )
+        // Return CONSUMED if you don't want want the window insets to keep being
+        // passed down to descendant views.
+        WindowInsetsCompat.CONSUMED
+    }
+}
+
+fun Activity.hideSystemBars() {
+    val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+}
+
+fun Activity.showSystemBars() {
+    val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
 }
