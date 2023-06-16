@@ -1768,3 +1768,43 @@ fun Activity.showSystemBars() {
     val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
     windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
 }
+
+
+/**
+ * Show dialog
+ * showDialog(context) {
+ * setTitle("Important Message")
+ * setMessage("This is an important dialog.")
+ * setPositiveButton("OK") { dialog, _ ->dialog.dismiss()}
+ * setNegativeButton("Cancel") { dialog, _ ->dialog.dismiss()}
+ * }
+ *
+ * @param context
+ * @param init
+ * @receiver
+ */
+fun showDialog(context: Context, init: AlertDialog.Builder.() -> Unit) {
+    val builder = AlertDialog.Builder(context)
+    builder.init()
+    val dialog = builder.create()
+    dialog.show()
+}
+
+/**
+ * Edit
+ *
+ * val sharedPreferences = context.getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
+ * sharedPreferences.edit {
+ * putString("key", "value")
+ * putInt("count", 5)
+ * commit()
+ * }
+ *
+ * @param func
+ * @receiver
+ */
+inline fun SharedPreferences.edit(func: SharedPreferences.Editor.() -> Unit) {
+    val editor = edit()
+    editor.func()
+    editor.apply()
+}
