@@ -7,6 +7,7 @@ import android.view.View
 import android.view.animation.DecelerateInterpolator
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.virtualstudios.extensionfunctions.dialog.CustomDialog
 
 class MainActivity : AppCompatActivity(), IActivityLogger by ActivityLogger() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,5 +36,10 @@ class MainActivity : AppCompatActivity(), IActivityLogger by ActivityLogger() {
         }
         setContentView(R.layout.activity_main)
         registerActivity(this)
+    }
+
+    private fun showCustomDialogUsingDialogFragment(){
+        val customDialog = CustomDialog()
+        customDialog.show(supportFragmentManager, "TAG")
     }
 }
