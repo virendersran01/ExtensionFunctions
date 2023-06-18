@@ -13,4 +13,10 @@ object Constants {
     const val KEY_ACCESS_TOKEN = "accessToken"
     const val KEY_IS_LOGGED_IN = "isLoggedIn"
     const val KEY_FCM_TOKEN = "fcmToken"
+
+    const val CLIENT_ERROR = "Client Error"
+    const val SERVER_ERROR = "Server Error"
+    const val NETWORK_ERROR = "Network Error"
+    const val HTTP_UNKNOWN_ERROR = "HTTP Error(exc: 4xx/5xx)"
+    const val UNKNOWN_ERROR = "Unknown Error"
 }
