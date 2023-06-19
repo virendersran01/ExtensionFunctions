@@ -205,6 +205,13 @@ interface ApiService2 {
     ): ApiResponse<Any>
 }
 
+class ApiSerImpl: ApiService2{
+    override suspend fun getResponse(token: String, id: Int): ApiResponse<Any> {
+        TODO("Not yet implemented")
+    }
+
+}
+
 class DataSource(private val apiService2: ApiService2){
     suspend fun getResponse(
         token: String,
@@ -291,7 +298,7 @@ sealed interface VisitingDetailUiState {
 
 class TempViewModel : ViewModel(){
 
-    val useCase = UseCaseImpl(RepositoryImpl(DataSource()))
+    val useCase = UseCaseImpl(RepositoryImpl(DataSource(ApiSerImpl())))
 
     private val _uiStateDetail =
         MutableStateFlow<VisitingDetailUiState>(VisitingDetailUiState.Loading)
@@ -367,7 +374,7 @@ class TempViewModel : ViewModel(){
         }
     }
 
-    val visitId = 1 //savedStateHandle.get<Int>("visitId")
+/*    val visitId = 1 //savedStateHandle.get<Int>("visitId")
 
     val agentDetail: StateFlow<VisitingDetailUiState>? =
         visitId?.let {
@@ -397,7 +404,7 @@ class TempViewModel : ViewModel(){
                 SharingStarted.WhileSubscribed(5_000),
                 VisitingDetailUiState.Loading
             )
-        }
+        }*/
 }
 
 
@@ -481,5 +488,7 @@ viewModel: ViewModel
             }
         }
     }
-  */  }
+  */
+/*
 }
+}*/

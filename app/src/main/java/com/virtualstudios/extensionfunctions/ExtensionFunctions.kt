@@ -78,6 +78,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.constraintlayout.widget.Placeholder
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
@@ -95,6 +96,9 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.liveData
 import com.bumptech.glide.Glide
+import com.bumptech.glide.Priority
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.RequestOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
@@ -1807,4 +1811,16 @@ inline fun SharedPreferences.edit(func: SharedPreferences.Editor.() -> Unit) {
     val editor = edit()
     editor.func()
     editor.apply()
+}
+
+fun ImageView.loadImageUrl(imageUrl: String, placeholder: Int) {
+    val options = RequestOptions().centerCrop().placeholder(placeholder)
+        .diskCacheStrategy(DiskCacheStrategy.ALL)
+        .priority(Priority.HIGH)
+        .dontAnimate()
+        .dontTransform()
+
+
+    Glide.with(this).load(imageUrl).apply(options).into(this)
+
 }
