@@ -81,6 +81,7 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.constraintlayout.widget.Placeholder
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.toSpannable
 import androidx.core.view.ViewCompat
@@ -126,6 +127,7 @@ import java.io.File
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
@@ -986,6 +988,7 @@ var isTodayYesterday =
     */
 
 fun String.toDate(format: String = "yyyy-MM-dd HH:mm:ss"): Date? {
+fun String.toDate(format: String = "yyyy-MM-dd HH:mm:ss"): Date? {
     val dateFormatter = SimpleDateFormat(format, Locale.getDefault())
     return dateFormatter.parse(this)
 }
@@ -1824,3 +1827,40 @@ fun ImageView.loadImageUrl(imageUrl: String, placeholder: Int) {
     Glide.with(this).load(imageUrl).apply(options).into(this)
 
 }
+
+    fun formatTimeAgo(date1: String): String {  // Note : date1 must be in   "yyyy-MM-dd hh:mm:ss"   format
+        var conversionTime =""
+        try{
+            val format = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+
+            val sdf = SimpleDateFormat(format)
+
+            val datetime= Calendar.getInstance()
+            var date2= sdf.format(datetime.time).toString()
+
+            val dateObj1 = sdf.parse(date1)
+            val dateObj2 = sdf.parse(date2)
+            val diff = dateObj2.time - dateObj1.time
+
+            val diffDays = diff / (24 * 60 * 60 * 1000)
+            val diffhours = diff / (60 * 60 * 1000)
+            val diffmin = diff / (60 * 1000)
+            val diffsec = diff  / 1000
+            if(diffDays>1){
+                conversionTime+=diffDays.toString()+" days "
+            }else if(diffhours>1){
+                conversionTime+=(diffhours-diffDays*24).toString()+" hours "
+            }else if(diffmin>1){
+                conversionTime+=(diffmin-diffhours*60).toString()+" min "
+            }else if(diffsec>1){
+                conversionTime+=(diffsec-diffmin*60).toString()+" sec "
+            }
+        }catch (ex:java.lang.Exception){
+            Log.e("formatTimeAgo",ex.toString())
+        }
+        if(conversionTime!=""){
+            conversionTime+="ago"
+        }
+        return conversionTime
+    }
+
