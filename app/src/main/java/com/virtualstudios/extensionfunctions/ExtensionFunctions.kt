@@ -988,287 +988,304 @@ var isTodayYesterday =
     */
 
 fun String.toDate(format: String = "yyyy-MM-dd HH:mm:ss"): Date? {
-fun String.toDate(format: String = "yyyy-MM-dd HH:mm:ss"): Date? {
-    val dateFormatter = SimpleDateFormat(format, Locale.getDefault())
-    return dateFormatter.parse(this)
-}
+    fun String.toDate(format: String = "yyyy-MM-dd HH:mm:ss"): Date? {
+        val dateFormatter = SimpleDateFormat(format, Locale.getDefault())
+        return dateFormatter.parse(this)
+    }
 
-fun Date.toStringFormat(format: String = "yyyy-MM-dd HH:mm:ss"): String {
-    val dateFormatter = SimpleDateFormat(format, Locale.getDefault())
-    return dateFormatter.format(this)
-}
+    fun Date.toStringFormat(format: String = "yyyy-MM-dd HH:mm:ss"): String {
+        val dateFormatter = SimpleDateFormat(format, Locale.getDefault())
+        return dateFormatter.format(this)
+    }
 
 //val currentDate = Date().toStringFormat()
 //val currentDate2 = Date().toStringFormat(format = "dd-MM-yyyy")
 //val date = "2023-01-01".toDate(format = "yyyy-MM-dd")
 
-fun Date.format(format: String): String = SimpleDateFormat(format).format(this)
-/*val date = Date()
-val formattedDate = date.format("yyyy-MM-dd")
-println(formattedDate) // prints something like "2023-04-08"*/
+    fun Date.format(format: String): String = SimpleDateFormat(format).format(this)
+    /*val date = Date()
+    val formattedDate = date.format("yyyy-MM-dd")
+    println(formattedDate) // prints something like "2023-04-08"*/
 
 
-/**
- * Configures an [ImageView] passing a [Drawable] and an ID of a color resource
- *
- * @param drawable A [Drawable] to set to the [ImageView]
- * @param colorResId A resource ID from the desired color
- */
-internal fun ImageView.setDrawableWithColor(
-    drawable: Drawable?,
-    @ColorRes colorResId: Int
-) {
-    setImageDrawable(drawable)
-    setColor(colorResId)
-}
+    /**
+     * Configures an [ImageView] passing a [Drawable] and an ID of a color resource
+     *
+     * @param drawable A [Drawable] to set to the [ImageView]
+     * @param colorResId A resource ID from the desired color
+     */
+    internal fun ImageView.setDrawableWithColor(
+        drawable: Drawable?,
+        @ColorRes colorResId: Int
+    ) {
+        setImageDrawable(drawable)
+        setColor(colorResId)
+    }
 
-internal fun ImageView.setColor(
-    @ColorRes colorResId: Int
-) = ImageViewCompat.setImageTintList(
-    this,
-    ColorStateList.valueOf(
-        ResourcesCompat.getColor(resources, colorResId, null)
+    internal fun ImageView.setColor(
+        @ColorRes colorResId: Int
+    ) = ImageViewCompat.setImageTintList(
+        this,
+        ColorStateList.valueOf(
+            ResourcesCompat.getColor(resources, colorResId, null)
+        )
     )
-)
 
 
-/**
- * Get all children of a [View]
- *
- * @return A [List] of [View] with the children of a given [View]
- */
-fun View.getAllChildren(): List<View> {
-    val childrenList: MutableList<View> = mutableListOf()
-    val viewGroup = this as? ViewGroup
-    // null-check because if this is not an instance of ViewGroup,
-    // val viewGroup will be null
-    viewGroup?.let {
-        for (i in 0 until viewGroup.childCount) {
-            childrenList.add(viewGroup.getChildAt(i))
+    /**
+     * Get all children of a [View]
+     *
+     * @return A [List] of [View] with the children of a given [View]
+     */
+    fun View.getAllChildren(): List<View> {
+        val childrenList: MutableList<View> = mutableListOf()
+        val viewGroup = this as? ViewGroup
+        // null-check because if this is not an instance of ViewGroup,
+        // val viewGroup will be null
+        viewGroup?.let {
+            for (i in 0 until viewGroup.childCount) {
+                childrenList.add(viewGroup.getChildAt(i))
+            }
+        }
+        return childrenList
+    }
+
+    /**
+     * Change view children state to the value in parameter
+     *
+     * @param state The [Boolean] state to set
+     */
+    fun View.setChildrenEnabledState(state: Boolean) {
+        this.getAllChildren().forEach { it.isEnabled = state }
+    }
+
+
+    /**
+     * Takes an object of type [T], makes a null-check and if it's not null, executes [block] with [V]
+     * as the receiver, and [T] as implicit param. **If [data] is null, the view will be hidden.**
+     * @param data An object with useful data to pass to the view
+     * @param view The view to configure
+     * @param block A function to execute in the context of [view] with param [T]
+     */
+    fun <T, V : View> configureViewWithNullableData(data: T?, view: V, block: V.(T) -> Unit) {
+        with(view) {
+            data?.let { block(it) } ?: this.gone()
         }
     }
-    return childrenList
-}
 
-/**
- * Change view children state to the value in parameter
- *
- * @param state The [Boolean] state to set
- */
-fun View.setChildrenEnabledState(state: Boolean) {
-    this.getAllChildren().forEach { it.isEnabled = state }
-}
+    /**
+     * Add a view into a ConstraintLayout, below of the last view (like a stack).
+     *
+     * @param child A [View] to add
+     */
+    fun ConstraintLayout.addChildOnStack(
+        child: View,
+        layoutParams: LayoutParams = LayoutParams(
+            LayoutParams.MATCH_CONSTRAINT,
+            LayoutParams.WRAP_CONTENT
+        )
+    ) {
+        // get all children of this, and the last child
+        val children = this.getAllChildren()
+        val lastChild = if (children.isNotEmpty()) children.last() else null
 
+        // check if no exists lastChild, then attach child to parent in top constraint
+        val topParentId = lastChild?.id ?: ConstraintSet.PARENT_ID
+        val parentSide = if (lastChild == null) ConstraintSet.TOP else ConstraintSet.BOTTOM
 
-/**
- * Takes an object of type [T], makes a null-check and if it's not null, executes [block] with [V]
- * as the receiver, and [T] as implicit param. **If [data] is null, the view will be hidden.**
- * @param data An object with useful data to pass to the view
- * @param view The view to configure
- * @param block A function to execute in the context of [view] with param [T]
- */
-fun <T, V : View> configureViewWithNullableData(data: T?, view: V, block: V.(T) -> Unit) {
-    with(view) {
-        data?.let { block(it) } ?: this.gone()
+        // generate an ID for child, and add child into this
+        child.id = View.generateViewId()
+        this.addView(child, layoutParams)
+
+        // create constraints to child
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(this)
+        constraintSet.connect(child.id, ConstraintSet.TOP, topParentId, parentSide)
+        constraintSet.connect(
+            child.id,
+            ConstraintSet.START,
+            ConstraintSet.PARENT_ID,
+            ConstraintSet.START
+        )
+        constraintSet.connect(
+            child.id,
+            ConstraintSet.END,
+            ConstraintSet.PARENT_ID,
+            ConstraintSet.END
+        )
+        constraintSet.applyTo(this)
     }
-}
 
-/**
- * Add a view into a ConstraintLayout, below of the last view (like a stack).
- *
- * @param child A [View] to add
- */
-fun ConstraintLayout.addChildOnStack(
-    child: View,
-    layoutParams: LayoutParams = LayoutParams(
-        LayoutParams.MATCH_CONSTRAINT,
-        LayoutParams.WRAP_CONTENT
-    )
-) {
-    // get all children of this, and the last child
-    val children = this.getAllChildren()
-    val lastChild = if (children.isNotEmpty()) children.last() else null
+    /**
+     * Add a view into a ConstraintLayout, at the right of the last view (like a horizontal row).
+     *
+     * @param child A [View] to add
+     * @param layoutParams (optional) A [LayoutParams] object with some previous configurations
+     */
+    internal fun ConstraintLayout.addChildOnRow(
+        child: View,
+        layoutParams: LayoutParams = LayoutParams(
+            LayoutParams.MATCH_CONSTRAINT,
+            LayoutParams.WRAP_CONTENT
+        ).also {
+            it.horizontalChainStyle = LayoutParams.CHAIN_SPREAD
+        }
+    ) {
+        // get all children of this, and the last child
+        val children = this.getAllChildren()
+        val lastChild = if (children.isNotEmpty()) children.last() else null
 
-    // check if no exists lastChild, then attach child to parent in top constraint
-    val topParentId = lastChild?.id ?: ConstraintSet.PARENT_ID
-    val parentSide = if (lastChild == null) ConstraintSet.TOP else ConstraintSet.BOTTOM
+        // check if doesn't exists lastChild, then attach child to parent view in start constraint;
+        // otherwise, it attaches the view at end constraint of lastChild.
+        val topParentId = lastChild?.id ?: ConstraintSet.PARENT_ID
+        val parentSide = if (lastChild == null) ConstraintSet.START else ConstraintSet.END
 
-    // generate an ID for child, and add child into this
-    child.id = View.generateViewId()
-    this.addView(child, layoutParams)
+        // generate an ID for child, and add child into this
+        child.id = View.generateViewId()
+        this.addView(child, layoutParams)
 
-    // create constraints to child
-    val constraintSet = ConstraintSet()
-    constraintSet.clone(this)
-    constraintSet.connect(child.id, ConstraintSet.TOP, topParentId, parentSide)
-    constraintSet.connect(
-        child.id,
-        ConstraintSet.START,
-        ConstraintSet.PARENT_ID,
-        ConstraintSet.START
-    )
-    constraintSet.connect(child.id, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
-    constraintSet.applyTo(this)
-}
-
-/**
- * Add a view into a ConstraintLayout, at the right of the last view (like a horizontal row).
- *
- * @param child A [View] to add
- * @param layoutParams (optional) A [LayoutParams] object with some previous configurations
- */
-internal fun ConstraintLayout.addChildOnRow(
-    child: View,
-    layoutParams: LayoutParams = LayoutParams(
-        LayoutParams.MATCH_CONSTRAINT,
-        LayoutParams.WRAP_CONTENT
-    ).also {
-        it.horizontalChainStyle = LayoutParams.CHAIN_SPREAD
+        // create constraints to child
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(this)
+        constraintSet.connect(
+            child.id,
+            ConstraintSet.TOP,
+            ConstraintSet.PARENT_ID,
+            ConstraintSet.TOP
+        )
+        constraintSet.connect(
+            child.id,
+            ConstraintSet.BOTTOM,
+            ConstraintSet.PARENT_ID,
+            ConstraintSet.BOTTOM
+        )
+        constraintSet.connect(child.id, ConstraintSet.START, topParentId, parentSide)
+        constraintSet.connect(
+            child.id,
+            ConstraintSet.END,
+            ConstraintSet.PARENT_ID,
+            ConstraintSet.END
+        )
+        if (lastChild != null) constraintSet.connect(
+            lastChild.id,
+            ConstraintSet.END, child.id,
+            ConstraintSet.START
+        )
+        constraintSet.applyTo(this)
     }
-) {
-    // get all children of this, and the last child
-    val children = this.getAllChildren()
-    val lastChild = if (children.isNotEmpty()) children.last() else null
 
-    // check if doesn't exists lastChild, then attach child to parent view in start constraint;
-    // otherwise, it attaches the view at end constraint of lastChild.
-    val topParentId = lastChild?.id ?: ConstraintSet.PARENT_ID
-    val parentSide = if (lastChild == null) ConstraintSet.START else ConstraintSet.END
+    /**
+     * Executes a function inside a [TextWatcher] [onTextChanged] method.
+     */
+    internal fun TextView.onTextChanged(block: (currentText: String) -> Unit) {
+        val textWatcher = object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                /* Nothing to do */
+            }
 
-    // generate an ID for child, and add child into this
-    child.id = View.generateViewId()
-    this.addView(child, layoutParams)
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) {
+                /* Nothing to do */
+            }
 
-    // create constraints to child
-    val constraintSet = ConstraintSet()
-    constraintSet.clone(this)
-    constraintSet.connect(child.id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
-    constraintSet.connect(
-        child.id,
-        ConstraintSet.BOTTOM,
-        ConstraintSet.PARENT_ID,
-        ConstraintSet.BOTTOM
-    )
-    constraintSet.connect(child.id, ConstraintSet.START, topParentId, parentSide)
-    constraintSet.connect(child.id, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
-    if (lastChild != null) constraintSet.connect(
-        lastChild.id,
-        ConstraintSet.END, child.id,
-        ConstraintSet.START
-    )
-    constraintSet.applyTo(this)
-}
-
-/**
- * Executes a function inside a [TextWatcher] [onTextChanged] method.
- */
-internal fun TextView.onTextChanged(block: (currentText: String) -> Unit) {
-    val textWatcher = object : TextWatcher {
-        override fun afterTextChanged(s: Editable?) {
-            /* Nothing to do */
-        }
-
-        override fun beforeTextChanged(
-            s: CharSequence?,
-            start: Int,
-            count: Int,
-            after: Int
-        ) {
-            /* Nothing to do */
-        }
-
-        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-            block(s?.toString().orEmpty())
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                block(s?.toString().orEmpty())
+            }
         }
     }
-}
 
-/**
- * Get a query parameter from the Uri data in the intent,
- * and an empty string if the data or value is null
- */
-fun Activity.deeplinkParam(key: String) = intent.data?.getQueryParameter(key) ?: ""
+    /**
+     * Get a query parameter from the Uri data in the intent,
+     * and an empty string if the data or value is null
+     */
+    fun Activity.deeplinkParam(key: String) = intent.data?.getQueryParameter(key) ?: ""
 
-/**
- * Add a new fragment with a [FragmentManager]
- * @param fragment A [Fragment] to add
- * @param containerView A [FrameLayout] that must contains the fragment
- */
-fun FragmentManager.addNewFragment(fragment: Fragment, containerView: FrameLayout) {
-    if (containerView.id == ConstraintLayout.NO_ID) containerView.id = View.generateViewId()
-    val transaction = beginTransaction()
-    transaction.add(containerView.id, fragment)
-    transaction.commit()
-}
-
-/**
- * Open a raw resource according to [resId] parameter and returns a [T] object.
- */
-internal inline fun <reified T> Context.getJsonFromRawResource(@RawRes resId: Int): T {
-    try {
-        val rawResource = resources.openRawResource(resId)
-        val buffer = ByteArray(rawResource.available())
-        rawResource.read(buffer)
-        val json = String(buffer)
-        return Gson().fromJson(json, T::class.java)
-    } catch (e: Resources.NotFoundException) {
-        throw e
-    } catch (e: JsonSyntaxException) {
-        throw JsonSyntaxException("Error reading JSON: ${e.message}", e)
+    /**
+     * Add a new fragment with a [FragmentManager]
+     * @param fragment A [Fragment] to add
+     * @param containerView A [FrameLayout] that must contains the fragment
+     */
+    fun FragmentManager.addNewFragment(fragment: Fragment, containerView: FrameLayout) {
+        if (containerView.id == ConstraintLayout.NO_ID) containerView.id = View.generateViewId()
+        val transaction = beginTransaction()
+        transaction.add(containerView.id, fragment)
+        transaction.commit()
     }
-}
 
-/**
- * To title case
- * uses -> println("java kotlin".toTitleCase())  // Output: "Java Kotlin"
- * @return
- */
-fun String.toTitleCase(): String {
-    return this.split(" ").joinToString(" ") { it.replaceFirstChar {
-        if (it.isLowerCase()) it.titlecase(
-            Locale.getDefault()
-        ) else it.toString()
-    } }
-}
+    /**
+     * Open a raw resource according to [resId] parameter and returns a [T] object.
+     */
+    internal inline fun <reified T> Context.getJsonFromRawResource(@RawRes resId: Int): T {
+        try {
+            val rawResource = resources.openRawResource(resId)
+            val buffer = ByteArray(rawResource.available())
+            rawResource.read(buffer)
+            val json = String(buffer)
+            return Gson().fromJson(json, T::class.java)
+        } catch (e: Resources.NotFoundException) {
+            throw e
+        } catch (e: JsonSyntaxException) {
+            throw JsonSyntaxException("Error reading JSON: ${e.message}", e)
+        }
+    }
 
-//Int to Enum
-inline fun <reified T : Enum<T>> Int.toEnum(): T? {
-    return enumValues<T>().firstOrNull { it.ordinal == this }
-}
+    /**
+     * To title case
+     * uses -> println("java kotlin".toTitleCase())  // Output: "Java Kotlin"
+     * @return
+     */
+    fun String.toTitleCase(): String {
+        return this.split(" ").joinToString(" ") {
+            it.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(
+                    Locale.getDefault()
+                ) else it.toString()
+            }
+        }
+    }
 
-//Enum to Int
-inline fun <reified T : Enum<T>> T.toInt(): Int {
-    return this.ordinal
-}
+    //Int to Enum
+    inline fun <reified T : Enum<T>> Int.toEnum(): T? {
+        return enumValues<T>().firstOrNull { it.ordinal == this }
+    }
+
+    //Enum to Int
+    inline fun <reified T : Enum<T>> T.toInt(): Int {
+        return this.ordinal
+    }
 
 
-/**
- * Snackbar
- * uses -> rootView.snackbar("This is snackbar message")
- * @param message
- * @param duration
- */
-fun View.snackbar(message: String, duration: Int = Snackbar.LENGTH_LONG) {
-    Snackbar.make(this, message, duration).show()
-}
+    /**
+     * Snackbar
+     * uses -> rootView.snackbar("This is snackbar message")
+     * @param message
+     * @param duration
+     */
+    fun View.snackbar(message: String, duration: Int = Snackbar.LENGTH_LONG) {
+        Snackbar.make(this, message, duration).show()
+    }
 
-/**
- * Snackbar
- * uses -> rootView.snackbar(R.string.snackbar_message)
- * @param message
- * @param duration
- */
-fun View.snackbar(@StringRes message: Int, duration: Int = Snackbar.LENGTH_LONG) {
-    Snackbar.make(this, message, duration).show()
-}
+    /**
+     * Snackbar
+     * uses -> rootView.snackbar(R.string.snackbar_message)
+     * @param message
+     * @param duration
+     */
+    fun View.snackbar(@StringRes message: Int, duration: Int = Snackbar.LENGTH_LONG) {
+        Snackbar.make(this, message, duration).show()
+    }
 
-val String.isDigitOnly: Boolean
+    val String.isDigitOnly: Boolean
     get() = matches(Regex("^\\d*\$"))
 
-val String.isAlphabeticOnly: Boolean
+    val String.isAlphabeticOnly: Boolean
     get() = matches(Regex("^[a-zA-Z]*\$"))
 
-val String.isAlphanumericOnly: Boolean
+    val String.isAlphanumericOnly: Boolean
     get() = matches(Regex("^[a-zA-Z\\d]*\$"))
 
 //val isValidNumber = "1234".isDigitOnly // Return true
@@ -1279,139 +1296,139 @@ val String.isAlphanumericOnly: Boolean
 //val isOnlyAlphanumeric2 = "abcABC@123.".isAlphanumericOnly // Return false
 
 
-/**
- * Is null
- * uses -> if(obj.isNull){  }else { }
- */
-val Any?.isNull get() = this == null
+    /**
+     * Is null
+     * uses -> if(obj.isNull){  }else { }
+     */
+    val Any?.isNull get() = this == null
 
-/**
- * If null
- * uses -> obj.ifNull { }
- * @param block
- * @receiver
- */
-fun Any?.ifNull(block: () -> Unit) = run {
-    if (this == null) {
-        block()
+    /**
+     * If null
+     * uses -> obj.ifNull { }
+     * @param block
+     * @receiver
+     */
+    fun Any?.ifNull(block: () -> Unit) = run {
+        if (this == null) {
+            block()
+        }
     }
-}
 
 
-/**
- * Animate property
- *
- * @param property
- * @param fromValue
- * @param toValue
- * @param duration
- * @param onComplete
- * @receiver
- *
- * uses -> view.animateProperty(View.TRANSLATION_X,fromValue = 0f,toValue = 100f,duration = 500,onComplete = { onAnimationComplete() })
- */
-fun View.animateProperty(
-    property: KProperty0<Float>,
-    fromValue: Float,
-    toValue: Float,
-    duration: Long,
-    onComplete: () -> Unit = {}
-) {
-    val animator = ObjectAnimator.ofFloat(this, property.name, fromValue, toValue).apply {
-        setDuration(duration)
-        addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-                super.onAnimationEnd(animation)
-                onComplete()
-            }
-        })
+    /**
+     * Animate property
+     *
+     * @param property
+     * @param fromValue
+     * @param toValue
+     * @param duration
+     * @param onComplete
+     * @receiver
+     *
+     * uses -> view.animateProperty(View.TRANSLATION_X,fromValue = 0f,toValue = 100f,duration = 500,onComplete = { onAnimationComplete() })
+     */
+    fun View.animateProperty(
+        property: KProperty0<Float>,
+        fromValue: Float,
+        toValue: Float,
+        duration: Long,
+        onComplete: () -> Unit = {}
+    ) {
+        val animator = ObjectAnimator.ofFloat(this, property.name, fromValue, toValue).apply {
+            setDuration(duration)
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    super.onAnimationEnd(animation)
+                    onComplete()
+                }
+            })
+        }
+        animator.start()
     }
-    animator.start()
-}
 
-/**
- * Run on background thread
- *
- * @param T
- * @param backgroundFunc
- * @param callback
- * @receiver
- * @receiver
- *
- *  uses -> runOnBackgroundThread({ doExpensiveCalculation() },{ onResultLoaded(it) })
- */
-fun <T> runOnBackgroundThread(backgroundFunc: () -> T, callback: (T) -> Unit) {
-    val handler = Handler(Looper.getMainLooper())
-    Thread {
-        val result = backgroundFunc()
-        handler.post { callback(result) }
-    }.start()
-}
+    /**
+     * Run on background thread
+     *
+     * @param T
+     * @param backgroundFunc
+     * @param callback
+     * @receiver
+     * @receiver
+     *
+     *  uses -> runOnBackgroundThread({ doExpensiveCalculation() },{ onResultLoaded(it) })
+     */
+    fun <T> runOnBackgroundThread(backgroundFunc: () -> T, callback: (T) -> Unit) {
+        val handler = Handler(Looper.getMainLooper())
+        Thread {
+            val result = backgroundFunc()
+            handler.post { callback(result) }
+        }.start()
+    }
 
-/**
- *
- * uses -> val name = etName.value
- */
-val EditText.value
+    /**
+     *
+     * uses -> val name = etName.value
+     */
+    val EditText.value
     get() = text?.toString() ?: ""
 
-/**
- * Validate
- *
- * @param validationFunc
- * @receiver
- * @return
- *
- * uses -> val input = "example input"
- * val isInputValid = input.validate { input -> input.isNotEmpty() }
- */
-fun String.validate(validationFunc: (String) -> Boolean): Boolean {
-    return validationFunc(this)
-}
+    /**
+     * Validate
+     *
+     * @param validationFunc
+     * @receiver
+     * @return
+     *
+     * uses -> val input = "example input"
+     * val isInputValid = input.validate { input -> input.isNotEmpty() }
+     */
+    fun String.validate(validationFunc: (String) -> Boolean): Boolean {
+        return validationFunc(this)
+    }
 
-/**
- * To editable
- *
- * @return
- * uses -> etName.text = "First name".toEditable()
- *
- */
-fun String.toEditable(): Editable = Editable.Factory.getInstance().newEditable(this)
-
-
-fun String.removeAllWhitespaces(): String {
-    return this.replace("\\s+".toRegex(), "")
-}
-
-fun String.removeDuplicateWhitespaces(): String {
-    return this.replace("\\s+".toRegex(), " ")
-}
-
-/**
- * Copy to clipboard
- *
- * @param context
- *
- * uses -> "This is clipboard".copyToClipboard(context)
- *
- *
- */
-fun String.copyToClipboard(context: Context) {
-    val clipboardManager = ContextCompat.getSystemService(context, ClipboardManager::class.java)
-    val clip = ClipData.newPlainText("clipboard", this)
-    clipboardManager?.setPrimaryClip(clip)
-}
+    /**
+     * To editable
+     *
+     * @return
+     * uses -> etName.text = "First name".toEditable()
+     *
+     */
+    fun String.toEditable(): Editable = Editable.Factory.getInstance().newEditable(this)
 
 
-/**
- * Screen size
- *
- * uses ->
- * val size = screenSize
- * val deviceHeight = size.height
- * val deviceWidth = size.width
- */
-val Context.screenSize: Size
+    fun String.removeAllWhitespaces(): String {
+        return this.replace("\\s+".toRegex(), "")
+    }
+
+    fun String.removeDuplicateWhitespaces(): String {
+        return this.replace("\\s+".toRegex(), " ")
+    }
+
+    /**
+     * Copy to clipboard
+     *
+     * @param context
+     *
+     * uses -> "This is clipboard".copyToClipboard(context)
+     *
+     *
+     */
+    fun String.copyToClipboard(context: Context) {
+        val clipboardManager = ContextCompat.getSystemService(context, ClipboardManager::class.java)
+        val clip = ClipData.newPlainText("clipboard", this)
+        clipboardManager?.setPrimaryClip(clip)
+    }
+
+
+    /**
+     * Screen size
+     *
+     * uses ->
+     * val size = screenSize
+     * val deviceHeight = size.height
+     * val deviceWidth = size.width
+     */
+    val Context.screenSize: Size
     get() {
         val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
@@ -1441,402 +1458,404 @@ val Context.screenSize: Size
     }
 
 
-val Context.windowManager
+    val Context.windowManager
     get() = ContextCompat.getSystemService(this, WindowManager::class.java)
 
-val Context.connectivityManager
+    val Context.connectivityManager
     get() = ContextCompat.getSystemService(this, ConnectivityManager::class.java)
 
-val Context.notificationManager
+    val Context.notificationManager
     get() = ContextCompat.getSystemService(this, NotificationManager::class.java)
 
-val Context.downloadManager
+    val Context.downloadManager
     get() = ContextCompat.getSystemService(this, DownloadManager::class.java)
 
 
-fun fromHtml(source: String): Spanned {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        Html.fromHtml(source, Html.FROM_HTML_MODE_LEGACY)
-    } else {
-        @Suppress("DEPRECATION")
-        Html.fromHtml(source)
-    }
-}
-
-/*fun bearingBetweenLocations(latLng1: LatLng, latLng2: LatLng): Float {
-    val pi = 3.14159
-    val lat1 = latLng1.latitude * pi / 180
-    val long1 = latLng1.longitude * pi / 180
-    val lat2 = latLng2.latitude * pi / 180
-    val long2 = latLng2.longitude * pi / 180
-    val dLon = long2 - long1
-    val y = sin(dLon) * cos(lat2)
-    val x = cos(lat1) * sin(lat2) - (sin(lat1)
-            * cos(lat2) * cos(dLon))
-    var bearing = atan2(y, x)
-    bearing = Math.toDegrees(bearing)
-    bearing = (bearing + 360) % 360
-    return bearing.toFloat()
-}*/
-
-fun View.showHideView(state: Boolean) = run { if (state) visible() else gone() }
-
-fun Context.getDrawableExt(@DrawableRes id: Int) = AppCompatResources.getDrawable(this, id)
-
-
-private fun CharSequence.toSpannableStringBuilder() = SpannableStringBuilder(this)
-
-fun SpannableStringBuilder.spanText(span: Any): SpannableStringBuilder {
-    setSpan(span, 0, length, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE)
-    return this
-}
-
-fun CharSequence.foregroundColor(@ColorInt color: Int): SpannableStringBuilder {
-    val span = ForegroundColorSpan(color)
-    return toSpannableStringBuilder().spanText(span)
-}
-
-fun CharSequence.backgroundColor(@ColorInt color: Int): SpannableStringBuilder {
-    val span = BackgroundColorSpan(color)
-    return toSpannableStringBuilder().spanText(span)
-}
-
-fun CharSequence.relativeSize(size: Float): SpannableStringBuilder {
-    val span = RelativeSizeSpan(size)
-    return toSpannableStringBuilder().spanText(span)
-}
-
-fun CharSequence.superScript(): SpannableStringBuilder {
-    val span = SuperscriptSpan()
-    return toSpannableStringBuilder().spanText(span)
-}
-
-fun CharSequence.strike(): SpannableStringBuilder {
-    val span = StrikethroughSpan()
-    return toSpannableStringBuilder().spanText(span)
-}
-
-operator fun SpannableStringBuilder.plus(other: SpannableStringBuilder): SpannableStringBuilder {
-    return this.append(other)
-}
-
-operator fun SpannableStringBuilder.plus(other: CharSequence): SpannableStringBuilder {
-    return this + other.toSpannable()
-}
-
-/**
- * With not null
- *
- * @param T
- * @param R
- * @param block
- * @receiver
- * @return
- * uses -> val nullableValue: String? = null
- *  nullableValue.withNotNull { value -> //code }
- *
- */
-inline fun <T : Any, R> T?.withNotNull(block: (T) -> R): R? {
-    return this?.let(block)
-}
-
-/**
- * To live data
- *
- * @param T
- * @return
- *
- */
-fun <T> Flow<T>.toLiveData(): LiveData<T> {
-    return liveData {
-        collect {
-            emit(it)
+    fun fromHtml(source: String): Spanned {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(source, Html.FROM_HTML_MODE_LEGACY)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(source)
         }
     }
-}
 
-/**
- * Not empty
- *
- * @param T
- * @return
- *  uses -> if (list.notEmpty()) { //code }
- *
- */
-fun <T> Collection<T>?.notEmpty(): Boolean {
-    return this?.isNotEmpty() == true
-}
+    /*fun bearingBetweenLocations(latLng1: LatLng, latLng2: LatLng): Float {
+        val pi = 3.14159
+        val lat1 = latLng1.latitude * pi / 180
+        val long1 = latLng1.longitude * pi / 180
+        val lat2 = latLng2.latitude * pi / 180
+        val long2 = latLng2.longitude * pi / 180
+        val dLon = long2 - long1
+        val y = sin(dLon) * cos(lat2)
+        val x = cos(lat1) * sin(lat2) - (sin(lat1)
+                * cos(lat2) * cos(dLon))
+        var bearing = atan2(y, x)
+        bearing = Math.toDegrees(bearing)
+        bearing = (bearing + 360) % 360
+        return bearing.toFloat()
+    }*/
 
-/**
- * Get or throw
- *
- * @param K
- * @param V
- * @param key
- * @return
- * uses -> val map = mapOf("key1" to "value1", "key2" to "value2")
- * val value = map.getOrThrow("key3")
- */
-fun <K, V> Map<K, V>.getOrThrow(key: K): V {
-    return this[key] ?: throw NoSuchElementException("Key $key not found in map")
-}
+    fun View.showHideView(state: Boolean) = run { if (state) visible() else gone() }
 
-fun Int.toFormattedString(): String {
-    return NumberFormat.getInstance().format(this)
-}
+    fun Context.getDrawableExt(@DrawableRes id: Int) = AppCompatResources.getDrawable(this, id)
 
-fun Long.toFormattedString(): String {
-    return NumberFormat.getInstance().format(this)
-}
 
-fun Date.toFormattedString(): String {
-    return SimpleDateFormat.getDateInstance().format(this)
-}
+    private fun CharSequence.toSpannableStringBuilder() = SpannableStringBuilder(this)
 
-/**
- * To bitmap
- *
- * @return
- * uses -> val drawable = ContextCompat.getDrawable(context, R.drawable.my_drawable)
- * val bitmap = drawable.toBitmap()
- */
-fun Drawable.toBitmap(): Bitmap {
-    if (this is BitmapDrawable) {
+    fun SpannableStringBuilder.spanText(span: Any): SpannableStringBuilder {
+        setSpan(span, 0, length, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE)
+        return this
+    }
+
+    fun CharSequence.foregroundColor(@ColorInt color: Int): SpannableStringBuilder {
+        val span = ForegroundColorSpan(color)
+        return toSpannableStringBuilder().spanText(span)
+    }
+
+    fun CharSequence.backgroundColor(@ColorInt color: Int): SpannableStringBuilder {
+        val span = BackgroundColorSpan(color)
+        return toSpannableStringBuilder().spanText(span)
+    }
+
+    fun CharSequence.relativeSize(size: Float): SpannableStringBuilder {
+        val span = RelativeSizeSpan(size)
+        return toSpannableStringBuilder().spanText(span)
+    }
+
+    fun CharSequence.superScript(): SpannableStringBuilder {
+        val span = SuperscriptSpan()
+        return toSpannableStringBuilder().spanText(span)
+    }
+
+    fun CharSequence.strike(): SpannableStringBuilder {
+        val span = StrikethroughSpan()
+        return toSpannableStringBuilder().spanText(span)
+    }
+
+    operator fun SpannableStringBuilder.plus(other: SpannableStringBuilder): SpannableStringBuilder {
+        return this.append(other)
+    }
+
+    operator fun SpannableStringBuilder.plus(other: CharSequence): SpannableStringBuilder {
+        return this + other.toSpannable()
+    }
+
+    /**
+     * With not null
+     *
+     * @param T
+     * @param R
+     * @param block
+     * @receiver
+     * @return
+     * uses -> val nullableValue: String? = null
+     *  nullableValue.withNotNull { value -> //code }
+     *
+     */
+    inline fun <T : Any, R> T?.withNotNull(block: (T) -> R): R? {
+        return this?.let(block)
+    }
+
+    /**
+     * To live data
+     *
+     * @param T
+     * @return
+     *
+     */
+    fun <T> Flow<T>.toLiveData(): LiveData<T> {
+        return liveData {
+            collect {
+                emit(it)
+            }
+        }
+    }
+
+    /**
+     * Not empty
+     *
+     * @param T
+     * @return
+     *  uses -> if (list.notEmpty()) { //code }
+     *
+     */
+    fun <T> Collection<T>?.notEmpty(): Boolean {
+        return this?.isNotEmpty() == true
+    }
+
+    /**
+     * Get or throw
+     *
+     * @param K
+     * @param V
+     * @param key
+     * @return
+     * uses -> val map = mapOf("key1" to "value1", "key2" to "value2")
+     * val value = map.getOrThrow("key3")
+     */
+    fun <K, V> Map<K, V>.getOrThrow(key: K): V {
+        return this[key] ?: throw NoSuchElementException("Key $key not found in map")
+    }
+
+    fun Int.toFormattedString(): String {
+        return NumberFormat.getInstance().format(this)
+    }
+
+    fun Long.toFormattedString(): String {
+        return NumberFormat.getInstance().format(this)
+    }
+
+    fun Date.toFormattedString(): String {
+        return SimpleDateFormat.getDateInstance().format(this)
+    }
+
+    /**
+     * To bitmap
+     *
+     * @return
+     * uses -> val drawable = ContextCompat.getDrawable(context, R.drawable.my_drawable)
+     * val bitmap = drawable.toBitmap()
+     */
+    fun Drawable.toBitmap(): Bitmap {
+        if (this is BitmapDrawable) {
+            return bitmap
+        }
+
+        val bitmap = Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        setBounds(0, 0, canvas.width, canvas.height)
+        draw(canvas)
+
         return bitmap
     }
 
-    val bitmap = Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    setBounds(0, 0, canvas.width, canvas.height)
-    draw(canvas)
 
-    return bitmap
-}
-
-
-/**
- * To uri
- *
- * @return
- * uses ->val filePath = "/storage/emulated/0/Download/my_file.pdf"
- * val fileUri = filePath.toUri()
- */
-fun String.toUri(): Uri {
-    return Uri.parse(this)
-}
-
-/**
- * Apply if
- *
- * @param T
- * @param condition
- * @param block
- * @receiver
- * @return
- * uses -> val number = 5
- * val formattedNumber = number.applyIf(number > 10) { toFormattedString() }
- *
- */
-inline fun <T> T.applyIf(condition: Boolean, block: T.() -> Unit): T {
-    return if (condition) {
-        this.apply(block)
-    } else {
-        this
+    /**
+     * To uri
+     *
+     * @return
+     * uses ->val filePath = "/storage/emulated/0/Download/my_file.pdf"
+     * val fileUri = filePath.toUri()
+     */
+    fun String.toUri(): Uri {
+        return Uri.parse(this)
     }
-}
 
-fun String?.isNullOrEmpty(): Boolean {
-    return this == null || this.isEmpty()
-}
-
-fun EditText.afterTextChanged(afterTextChanged: (String) -> Unit) {
-    addTextChangedListener(object : TextWatcher {
-        override fun afterTextChanged(s: Editable) {
-            afterTextChanged.invoke(s.toString())
+    /**
+     * Apply if
+     *
+     * @param T
+     * @param condition
+     * @param block
+     * @receiver
+     * @return
+     * uses -> val number = 5
+     * val formattedNumber = number.applyIf(number > 10) { toFormattedString() }
+     *
+     */
+    inline fun <T> T.applyIf(condition: Boolean, block: T.() -> Unit): T {
+        return if (condition) {
+            this.apply(block)
+        } else {
+            this
         }
-
-        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-    })
-}
-
-fun ImageView.loadImageWithGlide(url: String) {
-    Glide.with(this)
-        .load(url)
-        .placeholder(R.drawable.ic_launcher_foreground)
-        .error(R.drawable.ic_launcher_background)
-        .into(this)
-}
-
-inline fun <reified T : Any> SharedPreferences.get(key: String, defaultValue: T? = null): T? {
-    val value = when (T::class) {
-        String::class -> getString(key, defaultValue as? String) as T?
-        Int::class -> getInt(key, defaultValue as? Int ?: -1) as T?
-        Long::class -> getLong(key, defaultValue as? Long ?: -1L) as T?
-        Float::class -> getFloat(key, defaultValue as? Float ?: -1f) as T?
-        Boolean::class -> getBoolean(key, defaultValue as? Boolean ?: false) as T?
-        else -> throw IllegalArgumentException("Unsupported type: ${T::class.java}")
     }
-    return value
-}
 
-inline fun <reified T : Any> SharedPreferences.put(key: String, value: T?) {
-    val editor = edit()
-    when (T::class) {
-        String::class -> editor.putString(key, value as? String)
-        Int::class -> editor.putInt(key, value as? Int ?: -1)
-        Long::class -> editor.putLong(key, value as? Long ?: -1L)
-        Float::class -> editor.putFloat(key, value as? Float ?: -1f)
-        Boolean::class -> editor.putBoolean(key, value as? Boolean ?: false)
-        else -> throw IllegalArgumentException("Unsupported type: ${T::class.java}")
+    fun String?.isNullOrEmpty(): Boolean {
+        return this == null || this.isEmpty()
     }
-    editor.apply()
-}
 
-fun ViewGroup.inflate(layoutRes: Int): View {
-    return LayoutInflater.from(context).inflate(layoutRes, this, false)
-}
+    fun EditText.afterTextChanged(afterTextChanged: (String) -> Unit) {
+        addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable) {
+                afterTextChanged.invoke(s.toString())
+            }
 
-fun Context.getScreenWidth(): Int {
-    val displayMetrics = resources.displayMetrics
-    return displayMetrics.widthPixels
-}
-
-fun Date.getFormattedDate(): String {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-    return dateFormat.format(this)
-}
-
-fun Context.isPermissionGranted(permission: String): Boolean {
-    return ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
-}
-
-fun WebView.loadUrl(url: String?) {
-    if (!url.isNullOrEmpty()) {
-        loadUrl(url)
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
     }
-}
 
-fun String.formatPhoneNumber(): String {
-    val cleanedNumber = replace("[^0-9]".toRegex(), "")
-    return cleanedNumber.chunked(3).joinToString("-")
-}
-
-/**
- * Decimal format
- * uses -> 1.decimalFormat("0.0") -> 1.0
- * @param pattern
- * @return
- */
-fun Any.decimalFormat(pattern: String): String{
-    val decimalFormat = DecimalFormat(pattern)
-    return decimalFormat.format(this)
-}
-
-//https://github.com/sohaibkhaa/FullScreenSample.git
-fun Activity.enableFullScreen() {
-    WindowCompat.setDecorFitsSystemWindows(window, false)
-}
-
-fun Activity.disableFullScreen() {
-    WindowCompat.setDecorFitsSystemWindows(window, true)
-}
-
-fun Activity.setStatusBarColor(color: Int) {
-    window.statusBarColor = ContextCompat.getColor(this, color)
-}
-
-fun Activity.setNavBarColor(color: Int) {
-    window.navigationBarColor = ContextCompat.getColor(this, color)
-}
-
-fun View.applyWindowInsets() {
-    ViewCompat.setOnApplyWindowInsetsListener(this) { view, windowInsets ->
-        val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-        // Apply the insets as a margin to the view. Here the system is setting
-        // only the bottom, left, and right dimensions, but apply whichever insets are
-        // appropriate to your layout. You can also update the view padding
-        // if that's more appropriate.
-        (layoutParams as ViewGroup.MarginLayoutParams).setMargins(
-            insets.left, insets.top, insets.right, insets.bottom
-        )
-        // Return CONSUMED if you don't want want the window insets to keep being
-        // passed down to descendant views.
-        WindowInsetsCompat.CONSUMED
+    fun ImageView.loadImageWithGlide(url: String) {
+        Glide.with(this)
+            .load(url)
+            .placeholder(R.drawable.ic_launcher_foreground)
+            .error(R.drawable.ic_launcher_background)
+            .into(this)
     }
-}
 
-fun Activity.hideSystemBars() {
-    val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
-}
+    inline fun <reified T : Any> SharedPreferences.get(key: String, defaultValue: T? = null): T? {
+        val value = when (T::class) {
+            String::class -> getString(key, defaultValue as? String) as T?
+            Int::class -> getInt(key, defaultValue as? Int ?: -1) as T?
+            Long::class -> getLong(key, defaultValue as? Long ?: -1L) as T?
+            Float::class -> getFloat(key, defaultValue as? Float ?: -1f) as T?
+            Boolean::class -> getBoolean(key, defaultValue as? Boolean ?: false) as T?
+            else -> throw IllegalArgumentException("Unsupported type: ${T::class.java}")
+        }
+        return value
+    }
 
-fun Activity.showSystemBars() {
-    val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
-}
+    inline fun <reified T : Any> SharedPreferences.put(key: String, value: T?) {
+        val editor = edit()
+        when (T::class) {
+            String::class -> editor.putString(key, value as? String)
+            Int::class -> editor.putInt(key, value as? Int ?: -1)
+            Long::class -> editor.putLong(key, value as? Long ?: -1L)
+            Float::class -> editor.putFloat(key, value as? Float ?: -1f)
+            Boolean::class -> editor.putBoolean(key, value as? Boolean ?: false)
+            else -> throw IllegalArgumentException("Unsupported type: ${T::class.java}")
+        }
+        editor.apply()
+    }
+
+    fun ViewGroup.inflate(layoutRes: Int): View {
+        return LayoutInflater.from(context).inflate(layoutRes, this, false)
+    }
+
+    fun Context.getScreenWidth(): Int {
+        val displayMetrics = resources.displayMetrics
+        return displayMetrics.widthPixels
+    }
+
+    fun Date.getFormattedDate(): String {
+        val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+        return dateFormat.format(this)
+    }
+
+    fun Context.isPermissionGranted(permission: String): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            this,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun WebView.loadUrl(url: String?) {
+        if (!url.isNullOrEmpty()) {
+            loadUrl(url)
+        }
+    }
+
+    fun String.formatPhoneNumber(): String {
+        val cleanedNumber = replace("[^0-9]".toRegex(), "")
+        return cleanedNumber.chunked(3).joinToString("-")
+    }
+
+    /**
+     * Decimal format
+     * uses -> 1.decimalFormat("0.0") -> 1.0
+     * @param pattern
+     * @return
+     */
+    fun Any.decimalFormat(pattern: String): String {
+        val decimalFormat = DecimalFormat(pattern)
+        return decimalFormat.format(this)
+    }
+
+    //https://github.com/sohaibkhaa/FullScreenSample.git
+    fun Activity.enableFullScreen() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+    }
+
+    fun Activity.disableFullScreen() {
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+    }
+
+    fun Activity.setStatusBarColor(color: Int) {
+        window.statusBarColor = ContextCompat.getColor(this, color)
+    }
+
+    fun Activity.setNavBarColor(color: Int) {
+        window.navigationBarColor = ContextCompat.getColor(this, color)
+    }
+
+    fun View.applyWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(this) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // Apply the insets as a margin to the view. Here the system is setting
+            // only the bottom, left, and right dimensions, but apply whichever insets are
+            // appropriate to your layout. You can also update the view padding
+            // if that's more appropriate.
+            (layoutParams as ViewGroup.MarginLayoutParams).setMargins(
+                insets.left, insets.top, insets.right, insets.bottom
+            )
+            // Return CONSUMED if you don't want want the window insets to keep being
+            // passed down to descendant views.
+            WindowInsetsCompat.CONSUMED
+        }
+    }
+
+    fun Activity.hideSystemBars() {
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+    }
+
+    fun Activity.showSystemBars() {
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+    }
 
 
-/**
- * Show dialog
- * showDialog(context) {
- * setTitle("Important Message")
- * setMessage("This is an important dialog.")
- * setPositiveButton("OK") { dialog, _ ->dialog.dismiss()}
- * setNegativeButton("Cancel") { dialog, _ ->dialog.dismiss()}
- * }
- *
- * @param context
- * @param init
- * @receiver
- */
-fun showDialog(context: Context, init: AlertDialog.Builder.() -> Unit) {
-    val builder = AlertDialog.Builder(context)
-    builder.init()
-    val dialog = builder.create()
-    dialog.show()
-}
+    /**
+     * Show dialog
+     * showDialog(context) {
+     * setTitle("Important Message")
+     * setMessage("This is an important dialog.")
+     * setPositiveButton("OK") { dialog, _ ->dialog.dismiss()}
+     * setNegativeButton("Cancel") { dialog, _ ->dialog.dismiss()}
+     * }
+     *
+     * @param context
+     * @param init
+     * @receiver
+     */
+    fun showDialog(context: Context, init: AlertDialog.Builder.() -> Unit) {
+        val builder = AlertDialog.Builder(context)
+        builder.init()
+        val dialog = builder.create()
+        dialog.show()
+    }
 
-/**
- * Edit
- *
- * val sharedPreferences = context.getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
- * sharedPreferences.edit {
- * putString("key", "value")
- * putInt("count", 5)
- * commit()
- * }
- *
- * @param func
- * @receiver
- */
-inline fun SharedPreferences.edit(func: SharedPreferences.Editor.() -> Unit) {
-    val editor = edit()
-    editor.func()
-    editor.apply()
-}
+    /**
+     * Edit
+     *
+     * val sharedPreferences = context.getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
+     * sharedPreferences.edit {
+     * putString("key", "value")
+     * putInt("count", 5)
+     * commit()
+     * }
+     *
+     * @param func
+     * @receiver
+     */
+    inline fun SharedPreferences.edit(func: SharedPreferences.Editor.() -> Unit) {
+        val editor = edit()
+        editor.func()
+        editor.apply()
+    }
 
-fun ImageView.loadImageUrl(imageUrl: String, placeholder: Int) {
-    val options = RequestOptions().centerCrop().placeholder(placeholder)
-        .diskCacheStrategy(DiskCacheStrategy.ALL)
-        .priority(Priority.HIGH)
-        .dontAnimate()
-        .dontTransform()
+    fun ImageView.loadImageUrl(imageUrl: String, placeholder: Int) {
+        val options = RequestOptions().centerCrop().placeholder(placeholder)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .priority(Priority.HIGH)
+            .dontAnimate()
+            .dontTransform()
 
+        Glide.with(this).load(imageUrl).apply(options).into(this)
 
-    Glide.with(this).load(imageUrl).apply(options).into(this)
-
-}
+    }
 
     fun formatTimeAgo(date1: String): String {  // Note : date1 must be in   "yyyy-MM-dd hh:mm:ss"   format
-        var conversionTime =""
-        try{
+        var conversionTime = ""
+        try {
             val format = "yyyy-MM-dd'T'HH:mm:ss'Z'"
 
             val sdf = SimpleDateFormat(format)
 
-            val datetime= Calendar.getInstance()
-            var date2= sdf.format(datetime.time).toString()
+            val datetime = Calendar.getInstance()
+            var date2 = sdf.format(datetime.time).toString()
 
             val dateObj1 = sdf.parse(date1)
             val dateObj2 = sdf.parse(date2)
@@ -1845,26 +1864,26 @@ fun ImageView.loadImageUrl(imageUrl: String, placeholder: Int) {
             val diffDays = diff / (24 * 60 * 60 * 1000)
             val diffhours = diff / (60 * 60 * 1000)
             val diffmin = diff / (60 * 1000)
-            val diffsec = diff  / 1000
-            if(diffDays>1){
-                conversionTime+=diffDays.toString()+" days "
-            }else if(diffhours>1){
-                conversionTime+=(diffhours-diffDays*24).toString()+" hours "
-            }else if(diffmin>1){
-                conversionTime+=(diffmin-diffhours*60).toString()+" min "
-            }else if(diffsec>1){
-                conversionTime+=(diffsec-diffmin*60).toString()+" sec "
+            val diffsec = diff / 1000
+            if (diffDays > 1) {
+                conversionTime += diffDays.toString() + " days "
+            } else if (diffhours > 1) {
+                conversionTime += (diffhours - diffDays * 24).toString() + " hours "
+            } else if (diffmin > 1) {
+                conversionTime += (diffmin - diffhours * 60).toString() + " min "
+            } else if (diffsec > 1) {
+                conversionTime += (diffsec - diffmin * 60).toString() + " sec "
             }
-        }catch (ex:java.lang.Exception){
-            Log.e("formatTimeAgo",ex.toString())
+        } catch (ex: java.lang.Exception) {
+            Log.e("formatTimeAgo", ex.toString())
         }
-        if(conversionTime!=""){
-            conversionTime+="ago"
+        if (conversionTime != "") {
+            conversionTime += "ago"
         }
         return conversionTime
     }
 
-        fun DateTimeHourAgo(dateTime: String?): String? {
+    fun DateTimeHourAgo(dateTime: String?): String? {
         val prettyTime = PrettyTime(Locale.getDefault())
         var isTime: String? = null
         try {
@@ -1896,3 +1915,38 @@ fun ImageView.loadImageUrl(imageUrl: String, placeholder: Int) {
         return strCountry.toLowerCase()
     }
 
+    fun <T : Any?> fragmentArgs() = object : ReadWriteProperty<Fragment, T> {
+
+        override fun getValue(thisRef: Fragment, property: KProperty<*>): T =
+            thisRef.arguments?.get(property.name) as T
+
+        override fun setValue(thisRef: Fragment, property: KProperty<*>, value: T) {
+            if (thisRef.arguments == null) thisRef.arguments = bundleOf()
+
+            thisRef.requireArguments().putAll(
+                bundleOf(property.name to value)
+            )
+        }
+    }
+
+/*
+    // setting the arguments and initlizing the frgament
+    DelegateFragment().apply {
+        userId = "hello"
+    }
+
+// inside DelegateFragment using the delegate fun
+    private var userId:String by fragmentArgs()*/
+
+
+    // Function literals with receiver
+    inline fun IO(crossinline block: suspend CoroutineScope.() -> Unit) =
+        CoroutineScope(Dispatchers.IO).launch {
+            block.invoke(this)
+        }
+
+/*
+// usage
+    IO{ //Coroutine with IO Dispatcher
+        repository.apiCall()
+    }*/
