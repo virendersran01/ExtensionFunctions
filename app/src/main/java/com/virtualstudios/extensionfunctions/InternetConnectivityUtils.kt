@@ -9,14 +9,21 @@ import android.net.NetworkCapabilities
 import android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET
 import android.net.NetworkRequest
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.InetSocketAddress
 import javax.inject.Inject
+import javax.net.SocketFactory
 
 object ConnectedCompat {
 
@@ -349,5 +356,131 @@ class MainActivity2 : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         connectivityObservable.stopObserving(this)
+    }
+}*/
+
+//AnotherWay
+
+object DoesNetworkHaveInternet {
+    val TAG = this.javaClass.name
+    // Make sure to execute this on a background thread.
+    fun execute(socketFactory: SocketFactory): Boolean {
+        return try{
+            val socket = socketFactory.createSocket() ?: throw IOException("Socket is null.")
+            socket.connect(InetSocketAddress("8.8.8.8", 53), 1500)
+            socket.close()
+            Log.d(TAG, "PING success.")
+            true
+        }catch (e: IOException){
+            Log.e(TAG, "No internet connection.")
+            false
+        }
+    }
+}
+
+interface InternetConnectionCallback {
+    fun onConnected()
+    fun onDisconnected()
+}
+
+object InternetConnectionObserver{
+    private lateinit var networkCallback: ConnectivityManager.NetworkCallback
+    private var cm:ConnectivityManager? = null
+    private val validNetworks: MutableSet<Network> = HashSet()
+    private var connectionCallback: InternetConnectionCallback? = null
+
+    fun instance(context: Context): InternetConnectionObserver{
+        cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return this
+    }
+
+    fun setCallback(connectionCallback: InternetConnectionCallback): InternetConnectionObserver{
+        this.connectionCallback = connectionCallback
+        return this
+    }
+
+
+    private fun createNetworkCallback() = object : ConnectivityManager.NetworkCallback()
+    {
+        /*
+          Called when a network is detected. If that network has internet, save it in the Set.
+          Source: https://developer.android.com/reference/android/net/ConnectivityManager.NetworkCallback#onAvailable(android.net.Network)
+         */
+        override fun onAvailable(network: Network) {
+            val networkCapabilities = cm?.getNetworkCapabilities(network)
+            val hasInternetCapability = networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            if (hasInternetCapability == true) {
+                // check if this network actually has internet
+                CoroutineScope(Dispatchers.IO).launch {
+                    val hasInternet = DoesNetworkHaveInternet.execute(network.socketFactory)
+                    if(hasInternet){
+                        withContext(Dispatchers.Main){
+                            validNetworks.add(network)
+                            checkValidNetworks()
+                        }
+                    }
+                }
+            }
+        }
+
+        /*
+          If the callback was registered with registerNetworkCallback() it will be called for each network which no longer satisfies the criteria of the callback.
+          Source: https://developer.android.com/reference/android/net/ConnectivityManager.NetworkCallback#onLost(android.net.Network)
+         */
+        override fun onLost(network: Network) {
+            validNetworks.remove(network)
+            checkValidNetworks()
+        }
+
+    }
+
+    private fun checkValidNetworks() {
+        var status = validNetworks.size > 0
+        if(status){
+            connectionCallback?.onConnected()
+        } else{
+            connectionCallback?.onDisconnected()
+        }
+    }
+
+    fun register(): InternetConnectionObserver{
+        networkCallback = createNetworkCallback()
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        cm?.registerNetworkCallback(networkRequest, networkCallback)
+        return this
+    }
+
+    fun unRegister(){
+        cm?.unregisterNetworkCallback(networkCallback)
+    }
+}
+
+//uses
+
+/*
+class MainActivity : ComponentActivity(), InternetConnectionCallback {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        InternetConnectionObserver
+            .instance(this)
+            .setCallback(this)
+            .register()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        InternetConnectionObserver.unRegister()
+    }
+
+    override fun onConnected() {
+        Toast.makeText(this, "Internet Connection Resume", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDisconnected() {
+        Toast.makeText(this, "Internet Connection Lost", Toast.LENGTH_SHORT).show()
     }
 }*/
