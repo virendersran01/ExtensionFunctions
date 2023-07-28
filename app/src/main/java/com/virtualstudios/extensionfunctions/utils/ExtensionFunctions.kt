@@ -27,6 +27,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.Parcelable
@@ -1955,3 +1956,25 @@ inline fun IO(crossinline block: suspend CoroutineScope.() -> Unit) =
 fun dpToPx(resources: Resources, dip: Float): Float = TypedValue.applyDimension(
     TypedValue.COMPLEX_UNIT_DIP, dip, resources.displayMetrics
 )
+
+/*
+fun takeScreenshot(activity: Activity): File {
+    val now = Date()
+    val date = android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now)
+
+    val v1 = activity.window.decorView.rootView
+    v1.isDrawingCacheEnabled = true
+    val bitmap = Bitmap.createBitmap(v1.drawingCache)
+    v1.isDrawingCacheEnabled = false
+
+    val imageFile = File(activity.getExternalFilesDir(Environment.DIRECTORY_PICTURES),
+        "screenshot-$date.png")
+
+    val outputStream = FileOutputStream(imageFile)
+    val quality = 100
+    bitmap.compress(Bitmap.CompressFormat.PNG, quality, outputStream)
+    outputStream.flush()
+    outputStream.close()
+
+    return imageFile
+}*/
