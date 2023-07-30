@@ -1978,3 +1978,13 @@ fun takeScreenshot(activity: Activity): File {
 
     return imageFile
 }*/
+
+
+fun Date.toFormattedString(): String {
+    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    return dateFormat.format(this)
+}
+
+/*
+val currentDate = Date()
+val formattedDate = currentDate.toFormattedString()*/
