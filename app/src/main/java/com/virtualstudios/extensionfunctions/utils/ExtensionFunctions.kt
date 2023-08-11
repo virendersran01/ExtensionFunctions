@@ -1988,3 +1988,28 @@ fun Date.toFormattedString(): String {
 /*
 val currentDate = Date()
 val formattedDate = currentDate.toFormattedString()*/
+
+fun isValidEmail(email: String): Boolean {
+    return Patterns.EMAIL_ADDRESS.matcher(email).matches()
+}
+
+fun isStrongPassword(password: String): Boolean {
+    val passwordPattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+\$).{8,}\$"
+    return password.matches(passwordPattern.toRegex())
+}
+
+fun isNumeric(input: String): Boolean {
+    return input.matches("\\d+".toRegex())
+}
+
+fun truncateString(input: String, maxLength: Int): String {
+    return input.take(maxLength)
+}
+
+// Add the Jsoup library as a dependency in your app's build.gradle file
+//implementation 'org.jsoup:jsoup:1.14.3'
+
+// fun sanitizeHtml(input: String): String {
+//     // Use libraries like Jsoup to sanitize HTML
+//     return Jsoup.clean(input, Whitelist.basic())
+// }
