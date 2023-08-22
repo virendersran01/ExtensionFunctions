@@ -65,6 +65,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.AnimRes
 import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
@@ -75,6 +76,7 @@ import androidx.annotation.RawRes
 import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
@@ -84,6 +86,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.os.bundleOf
 import androidx.core.text.toSpannable
 import androidx.core.view.ViewCompat
@@ -102,6 +105,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
@@ -131,6 +136,8 @@ import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.text.ParseException
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -1608,9 +1615,9 @@ fun Long.toFormattedString(): String {
     return NumberFormat.getInstance().format(this)
 }
 
-fun Date.toFormattedString(): String {
+/*fun Date.toFormattedString(): String {
     return SimpleDateFormat.getDateInstance().format(this)
-}
+}*/
 
 /**
  * To bitmap
@@ -2013,3 +2020,188 @@ fun truncateString(input: String, maxLength: Int): String {
 //     // Use libraries like Jsoup to sanitize HTML
 //     return Jsoup.clean(input, Whitelist.basic())
 // }
+
+
+
+
+//createPartFromString
+fun String.toRequestBody(): RequestBody {
+    return toRequestBody("text/plain".toMediaTypeOrNull())
+}
+
+//prepareFilePart
+fun String.toFileBody(keyName: String = "image"): MultipartBody.Part? {
+    var body: MultipartBody.Part? = null
+    if (!TextUtils.isEmpty(this)) {
+        val file = File(this)
+        val requestFile =
+            file.asRequestBody("image/*".toMediaTypeOrNull())
+        body = MultipartBody.Part.createFormData(keyName, file.name, requestFile)
+    }
+    return body
+}
+
+//Extension func for back press
+inline fun AppCompatActivity.onBackPressed(isEnabled: Boolean, crossinline callback: () -> Unit) {
+    onBackPressedDispatcher.addCallback(this,
+        object : OnBackPressedCallback(isEnabled) {
+            override fun handleOnBackPressed() {
+                callback()
+            }
+        })
+}
+
+inline fun AppCompatActivity.onBackPressedWithOwner(
+    isEnabled: Boolean,
+    crossinline callback: () -> Unit
+) {
+    onBackPressedDispatcher.addCallback(
+        object : OnBackPressedCallback(isEnabled) {
+            override fun handleOnBackPressed() {
+                callback()
+            }
+        })
+}
+
+fun EditText.getInputText(): String {
+    return this.editableText.toString()
+}
+
+
+fun Context.toastInternetError() {
+    this.toast(msg = this.getString(R.string.no_internet))
+}
+
+fun AlertDialog.showHideAlertDialog(boolean: Boolean) {
+    if (boolean) this.show() else this.dismiss()
+}
+
+
+fun ImageView.loadImageFromUrl(
+    imageUrl: String,
+    @DrawableRes placeholderImage: Int? = null,
+    @DrawableRes errorImage: Int? = null
+) {
+    placeholderImage?.let {
+        Glide
+            .with(this.context)
+            .load(imageUrl)
+            // .centerCrop()
+            .placeholder(it)
+            .into(this)
+    } ?: run {
+        Glide
+            .with(this.context)
+            .load(imageUrl)
+            // .centerCrop()
+            .into(this)
+    }
+}
+
+fun View.setViewBackground(@DrawableRes id: Int) {
+    background = context.getDrawableExt(id)
+}
+
+fun View.setViewBackgroundTint(@ColorRes id: Int) {
+    backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, id))
+}
+
+fun Context.getDrawableCompat(@DrawableRes drawable: Int) =
+    AppCompatResources.getDrawable(this, drawable)
+
+fun Context.getColorCompat(@ColorRes color: Int) =
+    ContextCompat.getColor(this, color)
+
+fun TextView.setTextColorRes(@ColorRes color: Int) =
+    setTextColor(context.getColorCompat(color))
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun String.toLocalData(): LocalDate = LocalDate.parse(
+    this,
+    DateTimeFormatter.ofPattern("yyyy-MM-dd")
+)
+
+fun Context.navigateToMapWithDirections(dLat: String, dLng: String) {
+    val intentUri = Uri.Builder().apply {
+        scheme("https")
+        authority("www.google.com")
+        appendPath("maps")
+        appendPath("dir")
+        appendPath("")
+        appendQueryParameter("api", "1")
+        appendQueryParameter("destination", "$dLat,$dLng")
+    }.build()
+    startActivity(Intent(Intent.ACTION_VIEW).apply {
+        data = intentUri
+    })
+}
+
+inline fun View.setOnClickListenerWithDelay(
+    delayInClick: Long = 400L,
+    crossinline listener: (View) -> Unit
+) {
+    val enabledAgain = Runnable { isEnabled = true }
+    setOnClickListener {
+        if (isEnabled) {
+            isEnabled = false
+            postDelayed(enabledAgain, delayInClick)
+            listener(it)
+        }
+    }
+}
+
+/**
+ * Demonstrates converting a [Drawable] to a [BitmapDescriptor],
+ * for use as a marker icon. Taken from ApiDemos on GitHub:
+ * https://github.com/googlemaps/android-samples/blob/main/ApiDemos/kotlin/app/src/main/java/com/example/kotlindemos/MarkerDemoActivity.kt
+ */
+fun vectorToBitmap(
+    context: Context,
+    @DrawableRes id: Int,
+    @ColorInt color: Int
+): BitmapDescriptor {
+    val vectorDrawable = ResourcesCompat.getDrawable(context.resources, id, null)
+    if (vectorDrawable == null) {
+        Log.e("BitmapHelper", "Resource not found")
+        return BitmapDescriptorFactory.defaultMarker()
+    }
+    val bitmap = Bitmap.createBitmap(
+        vectorDrawable.intrinsicWidth,
+        vectorDrawable.intrinsicHeight,
+        Bitmap.Config.ARGB_8888
+    )
+    val canvas = Canvas(bitmap)
+    vectorDrawable.setBounds(0, 0, canvas.width, canvas.height)
+    DrawableCompat.setTint(vectorDrawable, color)
+    vectorDrawable.draw(canvas)
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+
+/*private val bicycleIcon: BitmapDescriptor by lazy {
+    val color = ContextCompat.getColor(this, R.color.colorPrimary)
+    BitmapHelper.vectorToBitmap(this, R.drawable.ic_directions_bike_black_24dp, color)
+}*/
+
+fun Context.hasPermissions(vararg permissions: String) = permissions.all { permission ->
+    ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+}
+
+fun Context.isResolvable(intent: Intent) = intent.resolveActivity(packageManager) != null
+
+fun Context.view(uri: Uri, onAppMissing: () -> Unit) {
+    val intent = Intent(Intent.ACTION_VIEW, uri)
+
+    if (!isResolvable(intent)) {
+        onAppMissing()
+        return
+    }
+
+    startActivity(intent)
+}
+
+/*
+view(uri, onAppMissing = {
+    // show error message
+})*/
+
