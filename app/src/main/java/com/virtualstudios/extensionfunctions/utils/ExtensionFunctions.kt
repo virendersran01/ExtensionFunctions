@@ -2115,6 +2115,10 @@ fun Context.getColorCompat(@ColorRes color: Int) =
 fun TextView.setTextColorRes(@ColorRes color: Int) =
     setTextColor(context.getColorCompat(color))
 
+fun TextView.setFont(@FontRes font: Int) = apply {
+    typeface = ResourcesCompat.getFont(this.context, font)
+}
+
 @RequiresApi(Build.VERSION_CODES.O)
 fun String.toLocalData(): LocalDate = LocalDate.parse(
     this,
@@ -2204,4 +2208,6 @@ fun Context.view(uri: Uri, onAppMissing: () -> Unit) {
 view(uri, onAppMissing = {
     // show error message
 })*/
+
+
 
