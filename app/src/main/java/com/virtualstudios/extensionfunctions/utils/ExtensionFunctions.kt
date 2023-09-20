@@ -2224,3 +2224,14 @@ inline fun <T> Flow<T>.launchAndCollectIn(
     }
 }
 
+inline fun <T> List<T>.forEachStep(step: Int = 1, action: (T) -> Unit) {
+    /*
+     * May want to have an iterator-based solution as well for lists that
+     * don't support random access. You could choose which solution to
+     * use based on 'if (this is RandomAccess)'.
+     */
+    for (i in indices step step) {
+        action(get(i))
+    }
+}
+
