@@ -189,4 +189,11 @@ object PermissionUtil {
         toast(getString(R.string.permission_denied))
     }
 
+    fun AppCompatActivity.launchLocationPermissions(onPermissionResult: (PermissionState) -> Unit){
+        val launcher = activityResultRegistry.register("Result", ActivityResultContracts.RequestMultiplePermissions()){
+            onPermissionResult(getPermissionState(this, it))
+        }
+        launcher.launch(locationPermissions)
+    }
+
 }
