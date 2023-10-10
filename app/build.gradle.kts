@@ -5,12 +5,12 @@ import java.time.format.DateTimeFormatter
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.android.kotlin)
-    //alias(libs.plugins.ksp)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.crashlytics)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
-    kotlin("kapt")
+    //kotlin("kapt")
 }
 
 
@@ -62,11 +62,11 @@ android {
     }
     compileOptions {
         isCoreLibraryDesugaringEnabled  = true
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 
     buildFeatures {
@@ -74,13 +74,13 @@ android {
         buildConfig = true
     }
 
-    kapt {
+    /*kapt {
         correctErrorTypes = true
-    }
+    }*/
 
-    kotlin {
-        jvmToolchain(8)
-    }
+//    kotlin {
+//        jvmToolchain(11)
+//    }
 }
 
 dependencies {
@@ -117,8 +117,8 @@ dependencies {
 
     //Image Loading
     implementation(libs.glide)
-    kapt(libs.glide.compiler)
-    //ksp(libs.glide.compiler)
+//    kapt(libs.glide.compiler)
+    ksp(libs.glide.compiler)
 
     //Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -139,7 +139,7 @@ dependencies {
 
     //Dagger Hilt DI
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
 
     //Splash Screen
     implementation(libs.splash.screen)
