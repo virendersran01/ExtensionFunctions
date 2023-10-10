@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "777243836250",
+    "project_id": "extension-functions",
+    "storage_bucket": "extension-functions.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777243836250:android:baf792fa82b98fa4103d63",
+        "android_client_info": {
+          "package_name": "com.virtualstudios.extensionfunctions"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBD3QpldcJkOvKC4iiMyVVRiAJeX9BdX2c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

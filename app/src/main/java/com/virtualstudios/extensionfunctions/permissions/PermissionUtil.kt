@@ -17,7 +17,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.Priority
-import com.it.ozzierides.rider.R
+import com.virtualstudios.extensionfunctions.R
+import toast
 import java.util.concurrent.TimeUnit
 
 object PermissionUtil {
@@ -100,12 +101,12 @@ object PermissionUtil {
         alertBuilder.setTitle(getString(R.string.loc_permission_needed))
         alertBuilder.setMessage(getString(R.string.app_need_loc_permission))
         alertBuilder.setPositiveButton(
-            getString(R.string.ok_uppercase)
+            getString(R.string.ok)
         ) { dialog, _ ->
             dialog.dismiss()
             onAction(true)
         }
-        alertBuilder.setNegativeButton(getString(R.string.cancel_uppercase)) { dialog, _ ->
+        alertBuilder.setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
             dialog.dismiss()
             onAction(false)
         }
@@ -118,11 +119,11 @@ object PermissionUtil {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.loc_permission_needed))
             .setMessage(getString(R.string.app_need_loc_permission))
-            .setPositiveButton(getString(R.string.ok_uppercase)) { dialog, _ ->
+            .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
                 dialog.dismiss()
                 onAction(true)
             }
-            .setNegativeButton(getString(R.string.no_uppercase)) { dialog, _ ->
+            .setNegativeButton(getString(R.string.no)) { dialog, _ ->
                 dialog.dismiss()
                 onAction(false)
             }

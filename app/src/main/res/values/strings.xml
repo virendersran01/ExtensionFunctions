@@ -35,4 +35,16 @@
     <string name="permission_description">%s </string>
     <string name="button_ok" />
     <string name="no_internet">Please turn on internet</string>
+    <string name="loc_permission_needed">Location permission needed</string>
+    <string name="app_need_loc_permission">App need location permission, please enable it to use its features</string>
+    <string name="no">No</string>
+    <string name="ok">OK</string>
+    <string name="permission_denied">Permission Denied</string>
+    <string name="install_play_service">please Install play service</string>
+    <string name="error">Play service Error</string>
+    <string name="enter_location">please wait for location</string>
+    <string name="grant">Grant</string>
+    <string name="deny">Deny</string>
+    <string name="cancel">Cancel</string>
+
 </resources>
