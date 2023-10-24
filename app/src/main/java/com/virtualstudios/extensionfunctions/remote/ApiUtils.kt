@@ -2,7 +2,8 @@ package com.virtualstudios.extensionfunctions.remote
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
-import com.virtualstudios.extensionfunctions.Constants
+
+import com.virtualstudios.extensionfunctions.TokenResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -47,15 +48,17 @@ data class ApiResponsePagination<T>(
 @Keep
 sealed class ApiCallResult<out T>{
     data class Success<T>(val data: T?) : ApiCallResult<T>()
-    data class Error<T>(val exception: Exception = Exception(), val errorMessage: String = "") : ApiCallResult<T>()
+    data class Error<T>(val exception: kotlin.Exception = Exception(), val errorMessage: String = "") : ApiCallResult<T>()
 
     override fun toString(): String {
         return when (this) {
             is Success<*> -> "Success[data=$data]"
             is Error -> "Error[exception=$exception, message=$errorMessage] "
+            is Exception -> "Exception=$e"
         }
     }
 
+    data class Exception(val e: Throwable) : ApiCallResult<Nothing>()
 }
 
 sealed class Resource<T>(val data: T? = null, val message: String? = null) {
@@ -225,4 +228,29 @@ sealed class DataState<out T : Any> {
     data class Success<out T : Any>(val data: T) : DataState<T>()
     data class Error(val errorMessage: String) : DataState<Nothing>()
     object Loading : DataState<Nothing>()
+}
+
+//https://github.com/sribanavasi/Handling_Multiple_Api
+interface ApiHandler {
+    suspend fun <T : Any> handleApi(
+        execute: suspend () -> ApiResponse<T>
+    ): ApiCallResult<T> {
+        return try {
+            val apiResponse = execute()
+            when(apiResponse.status){
+                1 -> ApiCallResult.Success(apiResponse.data)
+                else -> ApiCallResult.Error(Exception(), apiResponse.message)
+            }
+        } catch (e: HttpException) {
+            ApiCallResult.Error(e, e.message())
+        } catch (e: Throwable) {
+            ApiCallResult.Exception(e)
+        }
+    }
+}
+
+class RepositoryI(private val apiService: ApiService): ApiHandler{
+    suspend fun getRemoteData(): ApiCallResult<Any> {
+        return handleApi { apiService.getRemoteData() }
+    }
 }
