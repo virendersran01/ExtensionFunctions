@@ -112,7 +112,7 @@ data class PaginationData<T>(
     val nextPageUrl: String? = null
 )
 
-suspend fun <T> safeApiCall(apiCall: suspend () -> ApiResponse<T>): ApiCallResult<T> {
+suspend fun <T> handleApiCall(apiCall: suspend () -> ApiResponse<T>): ApiCallResult<T> {
     return try {
         val apiResponse = apiCall()
         when(apiResponse.status){
@@ -128,7 +128,7 @@ suspend fun <T> safeApiCall(apiCall: suspend () -> ApiResponse<T>): ApiCallResul
     }
 }
 
-suspend fun <T> safeApiCallPagination(apiCall: suspend () -> ApiResponsePagination<T>): ApiCallResult<PaginationData<T>> {
+suspend fun <T> handleApiCallPagination(apiCall: suspend () -> ApiResponsePagination<T>): ApiCallResult<PaginationData<T>> {
     return try {
         val apiResponse = apiCall()
         when(apiResponse.status){
@@ -203,7 +203,7 @@ sealed class ApiResource<out T> {
 
 }
 
-suspend fun <T : Any> safeApiCall(
+suspend fun <T : Any> handleApiCall(
     apiCall: suspend () -> T,
 ) : ApiResource<T> {
     return withContext(Dispatchers.IO) {
