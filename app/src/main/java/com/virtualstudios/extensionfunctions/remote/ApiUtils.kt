@@ -1,6 +1,8 @@
 package com.virtualstudios.extensionfunctions.remote
 
+import android.content.Context
 import androidx.annotation.Keep
+import androidx.annotation.StringRes
 import com.google.gson.annotations.SerializedName
 
 import com.virtualstudios.extensionfunctions.TokenResponse
@@ -252,5 +254,20 @@ interface ApiHandler {
 class RepositoryI(private val apiService: ApiService): ApiHandler{
     suspend fun getRemoteData(): ApiCallResult<Any> {
         return handleApi { apiService.getRemoteData() }
+    }
+}
+
+sealed class UiText {
+    data class DynamicString(val value: String) : UiText()
+    class StringResources(
+        @StringRes val resId: Int,
+        vararg val args: Any
+    ): UiText()
+
+    fun asString(context: Context): String{
+        return when(this){
+            is DynamicString -> value
+            is StringResources -> context.getString(resId, args)
+        }
     }
 }
