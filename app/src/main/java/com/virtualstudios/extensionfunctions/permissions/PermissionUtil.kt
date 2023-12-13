@@ -197,4 +197,19 @@ object PermissionUtil {
         launcher.launch(locationPermissions)
     }
 
+    fun AppCompatActivity.navigateToAppSettings(onResult: () -> Unit) {
+        val launcher = activityResultRegistry.register(
+            "Result",
+            ActivityResultContracts.StartActivityForResult()
+        ) {
+            onResult()
+        }
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", packageName, null)
+        )
+        launcher.launch(intent)
+    }
+
+
 }
