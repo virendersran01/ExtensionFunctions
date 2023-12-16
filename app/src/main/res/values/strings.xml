@@ -46,5 +46,16 @@
     <string name="grant">Grant</string>
     <string name="deny">Deny</string>
     <string name="cancel">Cancel</string>
+    <string name="camera_permission_needed">Camera permission needed</string>
+    <string name="camera_permission_info">App need camera permission, please enable it to use its features</string>
+    <string name="please_try_again">Please try again</string>
+    <string name="unable_to_get_notified">Unable to get Notified!</string>
+    <string name="app_need_post_notification_permission">App need post notification permission</string>
+    <string name="enable_notifications">Enable Notifications</string>
+    <string name="grant_notifications_permissions_from_settings">Grant notifications permissions from settings</string>
+    <string name="settings_camelcase">Settings</string>
+    <string name="ok_uppercase">OK</string>
+    <string name="no_uppercase">NO</string>
+    <string name="cancel_uppercase">CANCEL</string>
 
 </resources>
