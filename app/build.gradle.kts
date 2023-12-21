@@ -145,4 +145,7 @@ dependencies {
     implementation(libs.splash.screen)
 
     //kapt (libs.kotlinx.metadata.jvm)
+
+    //preference
+    implementation ("androidx.preference:preference-ktx:1.2.1")
 }
