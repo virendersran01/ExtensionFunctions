@@ -79,7 +79,7 @@ class AppUserPreferences @Inject constructor(
         }
     }
 
-    fun getIsLoggedIn() = sharedPreferences.getString(Constants.KEY_IS_LOGGED_IN, null)
+    fun getIsLoggedIn() = sharedPreferences.getBoolean(Constants.KEY_IS_LOGGED_IN, false)
 
     fun clearUserPreferences(){
         sharedPreferences.edit {

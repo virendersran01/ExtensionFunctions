@@ -5,6 +5,7 @@ import android.os.Build
 import com.google.gson.GsonBuilder
 import com.virtualstudios.extensionfunctions.BuildConfig
 import com.virtualstudios.extensionfunctions.Constants.BASE_URL
+import com.virtualstudios.extensionfunctions.local.AppUserPreferences
 import com.virtualstudios.extensionfunctions.remote.ApiService
 import dagger.Module
 import dagger.Provides
@@ -17,6 +18,8 @@ import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -52,7 +55,8 @@ object NetworkModule {
     @Singleton
     @Provides
     fun provideHttpClient(
-        httpLoggingInterceptor: HttpLoggingInterceptor
+        httpLoggingInterceptor: HttpLoggingInterceptor,
+        @AuthInterceptor authInterceptor: Interceptor
     ): OkHttpClient {
         return OkHttpClient
             .Builder().apply {
@@ -74,6 +78,8 @@ object NetworkModule {
                     request = request.newBuilder().url(url).build()
                     chain.proceed(request)
                 }
+                addInterceptor(authInterceptor)
+                addInterceptor(httpLoggingInterceptor)
             }
             .build()
     }
@@ -104,6 +110,76 @@ object NetworkModule {
     @Provides
     fun provideApiService(retrofit: Retrofit): ApiService =
         retrofit.create(ApiService::class.java)
+
+    @Singleton
+    @Provides
+    @AuthInterceptor
+    fun provideAuthInterceptor(
+        appUserPreferences: AppUserPreferences
+    ): Interceptor {
+        return Interceptor { chain ->
+            val request =
+                chain.request().newBuilder().apply {
+                    if (appUserPreferences.getIsLoggedIn()) {
+                        appUserPreferences.getAccessToken()?.let {
+                            header("Authorization", it)
+                        }
+                    }
+                }.build()
+            chain.proceed(request)
+        }
+    }
+
+    @Provides
+    @Singleton
+    @TokenInterceptor
+    fun provideTokenInterceptor(
+        appUserPreferences: AppUserPreferences
+    ) =
+        Interceptor {
+            val request = it.request()
+
+            it.proceed(
+                if (appUserPreferences.getIsLoggedIn()) {
+                    when (request.method) {
+                        "GET" -> {
+                            val url = request.url
+                            request.newBuilder()
+                                .url(
+                                    url.newBuilder()
+                                        .addQueryParameter(
+                                            "token",
+                                            appUserPreferences.getAccessToken()
+                                        )
+                                        .build()
+                                )
+                                .build()
+                        }
+
+                        "POST" -> {
+                            val body = request.body
+                            request.newBuilder()
+                                .post(
+                                    (body.bodyToString() + "&token=${appUserPreferences.getAccessToken()}").toRequestBody(
+                                        body?.contentType()
+                                    )
+                                )
+                                .build()
+                        }
+
+                        else -> request
+                    }
+                }else{
+                    request
+                })
+        }
+
+    private fun RequestBody?.bodyToString(): String {
+        if (this == null) return ""
+        val buffer = okio.Buffer()
+        writeTo(buffer)
+        return buffer.readUtf8()
+    }
 
    /* @Singleton
     @Provides
