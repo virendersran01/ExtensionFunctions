@@ -10,12 +10,15 @@ import com.virtualstudios.extensionfunctions.remote.ApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
+
 import dagger.hilt.components.SingletonComponent
 import logDebug
 import okhttp3.Cache
+import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -142,36 +145,14 @@ object NetworkModule {
             it.proceed(
                 if (appUserPreferences.getIsLoggedIn()) {
                     when (request.method) {
-                        "GET" -> {
-                            val url = request.url
-                            request.newBuilder()
-                                .url(
-                                    url.newBuilder()
-                                        .addQueryParameter(
-                                            "token",
-                                            appUserPreferences.getAccessToken()
-                                        )
-                                        .build()
-                                )
-                                .build()
-                        }
-
-                        "POST" -> {
-                            val body = request.body
-                            request.newBuilder()
-                                .post(
-                                    (body.bodyToString() + "&token=${appUserPreferences.getAccessToken()}").toRequestBody(
-                                        body?.contentType()
-                                    )
-                                )
-                                .build()
-                        }
-
+                        "GET" -> request.addTokenToGetRequest(appUserPreferences)
+                        "POST" -> request.addTokenToPostRequest(appUserPreferences)
                         else -> request
                     }
-                }else{
+                } else {
                     request
-                })
+                }
+            )
         }
 
     private fun RequestBody?.bodyToString(): String {
@@ -179,6 +160,82 @@ object NetworkModule {
         val buffer = okio.Buffer()
         writeTo(buffer)
         return buffer.readUtf8()
+    }
+
+    private fun Request.addTokenToPostRequest(appUserPreferences: AppUserPreferences): Request{
+        val body = this.body
+        val contentType =
+            "application/x-www-form-urlencoded;charset=UTF-8".toMediaTypeOrNull()
+        val multiPartContentType = "multipart/form-data; boundary=d1d88fda-7a74-426b-bf05-2d14436554c0".toMediaTypeOrNull()
+        return if (body?.contentType() != multiPartContentType) {
+            val requestBodyInString = body.bodyToString()
+            val formBody = appUserPreferences.getAccessToken()?.let { token ->
+                FormBody.Builder()
+                    .add("token", token)
+                    .build()
+            }
+            val newRequestBody = if (body.bodyToString().isNotEmpty()) {
+                "$requestBodyInString&${formBody.bodyToString()}"
+            } else {
+                formBody.bodyToString()
+            }
+            this.newBuilder()
+                .post(
+                    (newRequestBody).toRequestBody(
+                        contentType
+                    )
+                )
+                .build()
+        }else{
+            val requestBody: RequestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("token", appUserPreferences.getAccessToken()!!)
+                .build()
+            val requestBodyInString = body.bodyToString()
+            val newRequestBody = requestBody.bodyToString()+"&"+requestBodyInString
+            this.newBuilder()
+                .post(
+                    (newRequestBody).toRequestBody(
+                        multiPartContentType
+                    )
+                )
+                .build()
+        }
+    }
+
+    private fun Request.addTokenToGetRequest(appUserPreferences: AppUserPreferences): Request{
+        val url = this.url
+        return this.newBuilder()
+            .url(
+                url.newBuilder()
+                    .addQueryParameter(
+                        "token",
+                        appUserPreferences.getAccessToken()
+                    )
+                    .build()
+            )
+            .build()
+    }
+
+    private fun modifyRequestBody(request: Request): Request? {
+        var request = request
+        if ("POST" == request.method) {
+            if (request.body is FormBody) {
+                val bodyBuilder = FormBody.Builder()
+                var formBody = request.body as FormBody?
+                // Copy the original parameters first
+                for (i in 0 until formBody!!.size) {
+                    bodyBuilder.addEncoded(formBody.encodedName(i), formBody.encodedValue(i))
+                }
+                // Add common parameters
+                formBody = bodyBuilder
+                    .addEncoded("userid", "001")
+                    .addEncoded("param2", "value2")
+                    .build()
+                request = request.newBuilder().post(formBody).build()
+            }
+        }
+        return request //https://stackoverflow.com/questions/56515769/okhttp3-interceptor-add-fields-to-request-body
     }
 
    /* @Singleton
