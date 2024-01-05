@@ -166,6 +166,33 @@ object NetworkModule {
         val body = this.body
         val contentType =
             "application/x-www-form-urlencoded;charset=UTF-8".toMediaTypeOrNull()
+        val multiPartContentType = "multipart/form-data".toMediaTypeOrNull()
+        val requestBodyInString = body.bodyToString()
+        val formBody = appUserPreferences.getAccessToken()?.let { token ->
+            FormBody.Builder()
+                .add("token", token)
+                .build()
+        }
+        val newRequestBody = if (body.bodyToString().isNotEmpty()) {
+            "$requestBodyInString&${formBody.bodyToString()}"
+        } else {
+            formBody.bodyToString()
+        }
+
+        return if (body?.contentType()?.type == "multipart"){
+            this
+        }else {
+            this.newBuilder()
+                .post(
+                    (newRequestBody).toRequestBody(
+                        contentType
+                    )
+                )
+                .build()
+        }
+        /*val body = this.body
+        val contentType =
+            "application/x-www-form-urlencoded;charset=UTF-8".toMediaTypeOrNull()
         val multiPartContentType = "multipart/form-data; boundary=d1d88fda-7a74-426b-bf05-2d14436554c0".toMediaTypeOrNull()
         return if (body?.contentType() != multiPartContentType) {
             val requestBodyInString = body.bodyToString()
@@ -200,7 +227,7 @@ object NetworkModule {
                     )
                 )
                 .build()
-        }
+        }*/
     }
 
     private fun Request.addTokenToGetRequest(appUserPreferences: AppUserPreferences): Request{
