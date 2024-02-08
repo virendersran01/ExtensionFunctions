@@ -2,18 +2,16 @@ package com.virtualstudios.extensionfunctions.di_hilt
 
 import android.content.Context
 import android.os.Build
+import com.google.android.datatransport.runtime.dagger.Module
+import com.google.android.datatransport.runtime.dagger.Provides
 import com.google.gson.GsonBuilder
 import com.virtualstudios.extensionfunctions.BuildConfig
+import com.virtualstudios.extensionfunctions.Constants
 import com.virtualstudios.extensionfunctions.Constants.BASE_URL
 import com.virtualstudios.extensionfunctions.local.AppUserPreferences
 import com.virtualstudios.extensionfunctions.remote.ApiService
-import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
-
 import dagger.hilt.components.SingletonComponent
-import logDebug
-import okhttp3.Cache
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.Interceptor
@@ -23,69 +21,63 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.platform.android.AndroidLogHandler.setLevel
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    @BaseUrl
+    @Provides
+    fun provideBaseUrl(): String = Constants.BASE_URL
+
     @Singleton
     @Provides
-    fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
-        return HttpLoggingInterceptor().apply {
-            setLevel(HttpLoggingInterceptor.Level.BODY)
-        }
+    fun providesHttpLoggingInterceptor(): HttpLoggingInterceptor = HttpLoggingInterceptor().apply {
+        setLevel(
+            if (BuildConfig.DEBUG)
+                HttpLoggingInterceptor.Level.BODY
+            else
+                HttpLoggingInterceptor.Level.NONE
+        )
     }
 
+    @Singleton
     @Provides
-    fun providesOkhttp():OkHttpClient{
-        val okhttp = OkHttpClient.Builder()
-
-        if (BuildConfig.DEBUG) {
-            val logger = HttpLoggingInterceptor()
-            logger.setLevel(HttpLoggingInterceptor.Level.BODY)
-
-            okhttp.addInterceptor(logger)
-        }
-        return okhttp.build()
+    @Named("DeviceInfoInterceptor")
+    fun providesDeviceInfoInterceptor(): Interceptor = Interceptor { chain ->
+        val newUrl = chain.request().url.newBuilder().apply {
+            addQueryParameter("os_type", "android")
+            addQueryParameter("app_version_code", BuildConfig.VERSION_CODE.toString())
+            addQueryParameter("app_version_name", BuildConfig.VERSION_NAME)
+            addQueryParameter("os_version", Build.VERSION.SDK_INT.toString())
+            addQueryParameter("phone_manufacturer", Build.MANUFACTURER)
+            addQueryParameter("model", Build.MODEL)
+        }.build()
+        chain.proceed(chain.request().newBuilder().url(newUrl).build())
     }
 
     @Singleton
     @Provides
     fun provideHttpClient(
         httpLoggingInterceptor: HttpLoggingInterceptor,
+        @Named("DeviceInfoInterceptor") deviceInfoInterceptor: Interceptor,
         @AuthInterceptor authInterceptor: Interceptor
-    ): OkHttpClient {
-        return OkHttpClient
-            .Builder().apply {
-                readTimeout(60, TimeUnit.SECONDS)
-                connectTimeout(60, TimeUnit.SECONDS)
-                if (BuildConfig.DEBUG) {
-                    addInterceptor(httpLoggingInterceptor)
-                }
-                addInterceptor { chain ->
-                    var request: Request = chain.request()
-                    val url: HttpUrl = request.url.newBuilder().apply {
-                        addQueryParameter("os_type", "android")
-                        addQueryParameter("app_version_code", BuildConfig.VERSION_CODE.toString())
-                        addQueryParameter("app_version_name", BuildConfig.VERSION_NAME)
-                        addQueryParameter("os_version", Build.VERSION.SDK_INT.toString())
-                        addQueryParameter("phone_manufacturer", Build.MANUFACTURER)
-                        addQueryParameter("model", Build.MODEL)
-                    }.build()
-                    request = request.newBuilder().url(url).build()
-                    chain.proceed(request)
-                }
-                addInterceptor(authInterceptor)
-                addInterceptor(httpLoggingInterceptor)
-            }
-            .build()
-    }
+    ): OkHttpClient = OkHttpClient.Builder().apply {
+        connectTimeout(60, TimeUnit.SECONDS)
+        readTimeout(60, TimeUnit.SECONDS)
+        writeTimeout(60, TimeUnit.SECONDS)
+        addInterceptor(httpLoggingInterceptor)
+        addInterceptor(deviceInfoInterceptor)
+        addInterceptor(authInterceptor)
+    }.build()
 
     @Singleton
     @Provides
@@ -99,15 +91,14 @@ object NetworkModule {
     @Singleton
     @Provides
     fun provideRetrofit(
+        @BaseUrl baseUrl: String,
         okHttpClient: OkHttpClient,
         gsonConverterFactory: GsonConverterFactory
-    ): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(gsonConverterFactory)
-            .build()
-    }
+    ): Retrofit = Retrofit.Builder().apply {
+        baseUrl(baseUrl)
+        client(okHttpClient)
+        addConverterFactory(gsonConverterFactory)
+    }.build()
 
     @Singleton
     @Provides
@@ -133,7 +124,7 @@ object NetworkModule {
         }
     }
 
-    @Provides
+    @dagger.Provides
     @Singleton
     @TokenInterceptor
     fun provideTokenInterceptor(
@@ -141,7 +132,198 @@ object NetworkModule {
     ) =
         Interceptor {
             val request = it.request()
+            it.proceed(
+                if (appUserPreferences.getIsLoggedIn()) {
+                    when (request.method) {
+                        "GET" -> request.addTokenToGetRequest(appUserPreferences)
+                        "POST" -> request.addTokenToPostRequest(appUserPreferences)
+                        else -> request
+                    }
+                } else {
+                    request
+                }
+            )
+        }
 
+    @dagger.Provides
+    @Singleton
+    @LangInterceptor
+    fun provideLangInterceptor(
+        appUserPreferences: AppUserPreferences
+    ) =
+        Interceptor {
+            val request = it.request()
+            it.proceed(
+                when (request.method) {
+                    "GET" -> request.addLangToGetRequest(appUserPreferences)
+                    "POST" -> request.addLangToPostRequest(appUserPreferences)
+                    else -> request
+                }
+
+            )
+        }
+
+
+    private fun RequestBody?.bodyToString(): String {
+        if (this == null) return ""
+        val buffer = okio.Buffer()
+        writeTo(buffer)
+        return buffer.readUtf8()
+    }
+
+    private fun Request.addTokenToPostRequest(appUserPreferences: AppUserPreferences): Request {
+        val body = this.body
+        val contentType =
+            "application/x-www-form-urlencoded;charset=UTF-8".toMediaTypeOrNull()
+        val multiPartContentType = "multipart/form-data".toMediaTypeOrNull()
+        val requestBodyInString = body.bodyToString()
+        val formBody = appUserPreferences.getAccessToken()?.let { token ->
+            FormBody.Builder()
+                .add("token", token)
+                .build()
+        }
+        val newRequestBody = if (body.bodyToString().isNotEmpty()) {
+            "$requestBodyInString&${formBody.bodyToString()}"
+        } else {
+            formBody.bodyToString()
+        }
+
+        return if (body?.contentType()?.type == "multipart") {
+            this
+        } else {
+            this.newBuilder()
+                .post(
+                    (newRequestBody).toRequestBody(
+                        contentType
+                    )
+                )
+                .build()
+        }
+    }
+
+    private fun Request.addTokenToGetRequest(appUserPreferences: AppUserPreferences): Request {
+        val url = this.url
+        return this.newBuilder()
+            .url(
+                url.newBuilder()
+                    .addQueryParameter(
+                        "token",
+                        appUserPreferences.getAccessToken()
+                    )
+                    .build()
+            )
+            .build()
+    }
+
+    private fun Request.addLangToPostRequest(appUserPreferences: AppUserPreferences): Request {
+        val body = this.body
+        val contentType =
+            "application/x-www-form-urlencoded;charset=UTF-8".toMediaTypeOrNull()
+        val multiPartContentType = "multipart/form-data".toMediaTypeOrNull()
+        val requestBodyInString = body.bodyToString()
+        val formBody = appUserPreferences.getAccessToken()?.let { token ->
+            FormBody.Builder()
+                .add("lang", "getLanguageCode(appUserPreferences.getAppLanguage())")
+                .build()
+        }
+        val newRequestBody = if (body.bodyToString().isNotEmpty()) {
+            "$requestBodyInString&${formBody.bodyToString()}"
+        } else {
+            formBody.bodyToString()
+        }
+
+        return if (body?.contentType()?.type == "multipart") {
+            this
+        } else {
+            this.newBuilder()
+                .post(
+                    (newRequestBody).toRequestBody(
+                        contentType
+                    )
+                )
+                .build()
+        }
+    }
+
+
+    private fun Request.addLangToGetRequest(appUserPreferences: AppUserPreferences): Request {
+        val url = this.url
+        return this.newBuilder()
+            .url(
+                url.newBuilder()
+                    .addQueryParameter(
+                        "lang",
+                        "getLanguageCode(appUserPreferences.getAppLanguage())"
+                    )
+                    .build()
+            )
+            .build()
+    }
+
+
+    @Singleton
+    @dagger.Provides
+    @DirectionApiRetrofit
+    fun provideDirectionsHttpClient(
+        httpLoggingInterceptor: HttpLoggingInterceptor
+    ): OkHttpClient {
+        return OkHttpClient
+            .Builder().apply {
+                writeTimeout(60, TimeUnit.SECONDS)
+                readTimeout(60, TimeUnit.SECONDS)
+                connectTimeout(60, TimeUnit.SECONDS)
+                addInterceptor { chain ->
+                    var request: Request = chain.request()
+                    val url: HttpUrl = request.url.newBuilder()
+                        .addQueryParameter("key", "")
+                        .build()
+                    request = request.newBuilder().header("Content-Type", "application/json")
+                        .header("Accept", "application/json")
+                        .header("key", "")
+                        .header(
+                            "X-Goog-FieldMask",
+                            "routes.duration,routes.distanceMeters,routes.routeLabels,routes.polyline"
+                        ).build()
+                    request = request.newBuilder().url(url).build()
+                    chain.proceed(request)
+                }
+                addInterceptor(httpLoggingInterceptor)
+            }
+            .build()
+    }
+
+    @Singleton
+    @dagger.Provides
+    @DirectionApiRetrofit //@Named("")
+    fun provideDirectionsRetrofit(
+        @DirectionApiRetrofit okHttpClient: OkHttpClient,
+        gsonConverterFactory: GsonConverterFactory
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://routes.googleapis.com/")
+            .client(okHttpClient)
+            .addConverterFactory(gsonConverterFactory)
+            .build()
+    }
+
+    /*@Singleton
+    @dagger.Provides
+    fun provideDirectionsApiService(
+        @DirectionApiRetrofit retrofit: Retrofit
+    ): DirectionsApiService =
+        retrofit.create(DirectionsApiService::class.java)*/
+
+
+}
+
+   /* @Provides
+    @Singleton
+    @TokenInterceptor
+    fun provideTokenInterceptor(
+        appUserPreferences: AppUserPreferences
+    ) =
+        Interceptor {
+            val request = it.request()
             it.proceed(
                 if (appUserPreferences.getIsLoggedIn()) {
                     when (request.method) {
@@ -190,7 +372,7 @@ object NetworkModule {
                 )
                 .build()
         }
-        /*val body = this.body
+        *//*val body = this.body
         val contentType =
             "application/x-www-form-urlencoded;charset=UTF-8".toMediaTypeOrNull()
         val multiPartContentType = "multipart/form-data; boundary=d1d88fda-7a74-426b-bf05-2d14436554c0".toMediaTypeOrNull()
@@ -227,7 +409,7 @@ object NetworkModule {
                     )
                 )
                 .build()
-        }*/
+        }*//*
     }
 
     private fun Request.addTokenToGetRequest(appUserPreferences: AppUserPreferences): Request{
@@ -264,7 +446,7 @@ object NetworkModule {
         }
         return request //https://stackoverflow.com/questions/56515769/okhttp3-interceptor-add-fields-to-request-body
     }
-
+*/
    /* @Singleton
     @Provides
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
@@ -487,4 +669,60 @@ object NetworkModule {
 //        return builder
 //    }
 
+
+
+/*
+@Singleton
+@Provides
+fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
+    return HttpLoggingInterceptor().apply {
+        setLevel(HttpLoggingInterceptor.Level.BODY)
+    }
 }
+
+@Provides
+fun providesOkhttp():OkHttpClient{
+    val okhttp = OkHttpClient.Builder()
+
+    if (BuildConfig.DEBUG) {
+        val logger = HttpLoggingInterceptor()
+        logger.setLevel(HttpLoggingInterceptor.Level.BODY)
+
+        okhttp.addInterceptor(logger)
+    }
+    return okhttp.build()
+}*/
+
+
+/*
+@Singleton
+@Provides
+fun provideHttpClient(
+    httpLoggingInterceptor: HttpLoggingInterceptor,
+    @AuthInterceptor authInterceptor: Interceptor
+): OkHttpClient {
+    return OkHttpClient
+        .Builder().apply {
+            readTimeout(60, TimeUnit.SECONDS)
+            connectTimeout(60, TimeUnit.SECONDS)
+            if (BuildConfig.DEBUG) {
+                addInterceptor(httpLoggingInterceptor)
+            }
+            addInterceptor { chain ->
+                var request: Request = chain.request()
+                val url: HttpUrl = request.url.newBuilder().apply {
+                    addQueryParameter("os_type", "android")
+                    addQueryParameter("app_version_code", BuildConfig.VERSION_CODE.toString())
+                    addQueryParameter("app_version_name", BuildConfig.VERSION_NAME)
+                    addQueryParameter("os_version", Build.VERSION.SDK_INT.toString())
+                    addQueryParameter("phone_manufacturer", Build.MANUFACTURER)
+                    addQueryParameter("model", Build.MODEL)
+                }.build()
+                request = request.newBuilder().url(url).build()
+                chain.proceed(request)
+            }
+            addInterceptor(authInterceptor)
+            addInterceptor(httpLoggingInterceptor)
+        }
+        .build()
+}*/

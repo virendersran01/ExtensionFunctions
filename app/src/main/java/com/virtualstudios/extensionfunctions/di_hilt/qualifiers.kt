@@ -11,3 +11,12 @@ annotation class AuthInterceptor
 
 @Qualifier
 annotation class TokenInterceptor
+
+@Qualifier
+annotation class LangInterceptor
+
+@Qualifier
+annotation class ApiRetrofit
+
+@Qualifier
+annotation class DirectionApiRetrofit

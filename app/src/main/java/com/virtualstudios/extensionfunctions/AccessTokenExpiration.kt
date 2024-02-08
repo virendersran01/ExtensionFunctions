@@ -2,6 +2,7 @@ package com.virtualstudios.extensionfunctions
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.android.datatransport.runtime.dagger.Module
 import com.google.gson.annotations.SerializedName
 import dagger.Module
 import dagger.Provides
