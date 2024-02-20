@@ -60,4 +60,6 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
+    <string name="terms_amp_conditions_privacy_policy">Please accept our <annotation action="acceptTC">Terms &amp; Conditions</annotation> and read the <annotation action="readPP">Privacy Policy</annotation></string>
+
 </resources>
