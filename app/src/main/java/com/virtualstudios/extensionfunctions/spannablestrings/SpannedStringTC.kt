@@ -1,5 +1,6 @@
 package com.virtualstudios.extensionfunctions.spannablestrings
 
+import android.app.ProgressDialog.show
 import android.content.Context
 import android.graphics.Color
 import android.text.Annotation
@@ -11,6 +12,8 @@ import android.text.style.ClickableSpan
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.core.content.res.TypedArrayUtils.getText
+import androidx.viewbinding.ViewBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.virtualstudios.extensionfunctions.R
 
 class CustomClickSpan(
@@ -62,3 +65,4 @@ private fun createClickSpan(action: String) = when (action) {
 
     else -> throw NotImplementedError("action $action not implemented")
 }
+

@@ -101,8 +101,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.liveData
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.viewbinding.ViewBinding
 import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -110,6 +110,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
@@ -126,6 +127,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.internal.NopCollector.emit
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -2241,3 +2243,21 @@ fun <T1, T2> ifNotNull(value1: T1?, value2: T2?, bothNotNull: (T1, T2) -> (Unit)
     }
 }
 
+inline fun <T : ViewBinding> Context.showCustomDialog(
+    vb: T,
+    block: (T, AlertDialog) -> Unit
+) {
+    val materialAlertDialogBuilder =
+        MaterialAlertDialogBuilder(this, R.style.AlertDialogRounded)
+            .apply {
+                setCancelable(false)
+                setView(vb.root)
+            }
+    val alertDialog = materialAlertDialogBuilder.create().apply {
+        //window?.setBackgroundDrawableResource(android.R.color.transparent)
+        show()
+    }
+    vb.apply {
+        block(this, alertDialog)
+    }
+}
