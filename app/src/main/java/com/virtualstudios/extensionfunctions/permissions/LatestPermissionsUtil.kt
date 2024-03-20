@@ -37,6 +37,14 @@ val locationPermissions = arrayOf(
     Manifest.permission.ACCESS_COARSE_LOCATION
 )
 
+const val READ_EXTERNAL_STORAGE = Manifest.permission.READ_EXTERNAL_STORAGE
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+const val READ_MEDIA_IMAGES = Manifest.permission.READ_MEDIA_IMAGES
+
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+const val READ_MEDIA_VISUAL_USER_SELECTED = Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+
 fun Context.showPermissionDeniedToast() {
     toast(getString(R.string.permission_denied))
 }
@@ -398,6 +406,55 @@ fun AppCompatActivity.checkForCameraPermissions(onPermissionResult: (Boolean) ->
     }
 }
 
+fun AppCompatActivity.checkForStoragePermissions(onPermissionResult: (Boolean) -> Unit) {
+    val launcher = activityResultRegistry.register(
+        "Result",
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            (
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        READ_MEDIA_IMAGES
+                    ) == PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(
+                                this,
+                                READ_MEDIA_VIDEO
+                            ) == PERMISSION_GRANTED
+                    )
+        ) {
+            onPermissionResult(true)
+            // Full access on Android 13 (API level 33) or higher
+        } else if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            ContextCompat.checkSelfPermission(
+                this,
+                READ_MEDIA_VISUAL_USER_SELECTED
+            ) == PERMISSION_GRANTED
+        ) {
+            onPermissionResult(true)
+            // Partial access on Android 14 (API level 34) or higher
+        } else if (ContextCompat.checkSelfPermission(
+                this,
+                READ_EXTERNAL_STORAGE
+            ) == PERMISSION_GRANTED
+        ) {
+            onPermissionResult(true)
+            // Full access up to Android 12 (API level 32)
+        } else {
+            onPermissionResult(false)
+        }
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        launcher.launch(arrayOf(READ_MEDIA_IMAGES, READ_MEDIA_VISUAL_USER_SELECTED))
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        launcher.launch(arrayOf(READ_MEDIA_IMAGES))
+    } else {
+        launcher.launch(arrayOf(READ_EXTERNAL_STORAGE))
+    }
+}
 
 
 
