@@ -1,11 +1,13 @@
 package com.virtualstudios.extensionfunctions.permissions
 
 import android.Manifest
+import android.Manifest.permission.READ_MEDIA_VIDEO
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
