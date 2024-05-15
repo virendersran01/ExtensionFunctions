@@ -148,6 +148,7 @@ import java.util.Locale
 import java.util.regex.Pattern
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -358,6 +359,14 @@ val Float.dp
         this,
         Resources.getSystem().displayMetrics
     )
+
+fun Int.toDp(resources: Resources): Float {
+    return TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP,
+        this.toFloat(),
+        resources.displayMetrics
+    )
+}
 
 val Float.sp
     get() = TypedValue.applyDimension(
@@ -2260,4 +2269,12 @@ inline fun <T : ViewBinding> Context.showCustomDialog(
     vb.apply {
         block(this, alertDialog)
     }
+}
+
+fun getColorWithAlpha(color: Int, ratio: Float): Int {
+    val alpha = (Color.alpha(color) * ratio).roundToInt()
+    val r = Color.red(color)
+    val g = Color.green(color)
+    val b = Color.blue(color)
+    return Color.argb(alpha, r, g, b)
 }
