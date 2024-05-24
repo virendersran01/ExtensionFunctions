@@ -2278,3 +2278,7 @@ fun getColorWithAlpha(color: Int, ratio: Float): Int {
     val b = Color.blue(color)
     return Color.argb(alpha, r, g, b)
 }
+
+fun String.isNumeric(): Boolean { //toIntOrNull() -> for safely converting string to int
+    return this.all { char -> char.isDigit() }
+}
