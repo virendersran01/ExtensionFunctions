@@ -569,6 +569,10 @@ val minFilter =  InputFilter { source, _, _, dest, _, _ ->
     return@InputFilter null
 }
 
+private fun isInRange(a: Int, b: Int, c: Int): Boolean {
+    return if (b > a) c in a..b else c in b..a
+}
+
 fun Context.isNetworkConnected(): Boolean {
     val connectivityManager =
         this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
