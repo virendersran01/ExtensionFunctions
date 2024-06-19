@@ -3,8 +3,12 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.DownloadManager
+import android.app.Fragment
+import android.app.FragmentManager
 import android.app.NotificationManager
+import android.app.ProgressDialog.show
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -26,6 +30,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES.R
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -553,6 +558,15 @@ private val emojiExcludeFilter = InputFilter { source, start, end, _, _, _ ->
         }
     }
     return@InputFilter filtered
+}
+
+//Input Filter for removing starting zero if input type is number
+val minFilter =  InputFilter { source, _, _, dest, _, _ ->
+    val input = Integer.parseInt(dest.toString() + source.toString())
+    if (input == 0){
+        return@InputFilter ""
+    }
+    return@InputFilter null
 }
 
 fun Context.isNetworkConnected(): Boolean {
