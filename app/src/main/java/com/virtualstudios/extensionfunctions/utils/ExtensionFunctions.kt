@@ -25,6 +25,7 @@ import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.location.Geocoder
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -115,18 +116,26 @@ import com.bumptech.glide.request.RequestOptions
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointForward
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.i18n.phonenumbers.NumberParseException
 import com.google.i18n.phonenumbers.PhoneNumberUtil
+import com.google.maps.android.SphericalUtil
 import com.virtualstudios.extensionfunctions.BuildConfig
 import com.virtualstudios.extensionfunctions.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -141,20 +150,24 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.ocpsoft.prettytime.PrettyTime
 import java.io.File
+import java.io.IOException
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
+import kotlin.math.absoluteValue
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty0
@@ -1850,8 +1863,8 @@ fun Activity.showSystemBars() {
  * @param init
  * @receiver
  */
-fun showDialog(context: Context, init: AlertDialog.Builder.() -> Unit) {
-    val builder = AlertDialog.Builder(context)
+fun showDialog(context: Context, init: androidx.appcompat.app.AlertDialog.Builder.() -> Unit) {
+    val builder = androidx.appcompat.app.AlertDialog.Builder(context)
     builder.init()
     val dialog = builder.create()
     dialog.show()
@@ -2272,7 +2285,7 @@ fun <T1, T2> ifNotNull(value1: T1?, value2: T2?, bothNotNull: (T1, T2) -> (Unit)
 
 inline fun <T : ViewBinding> Context.showCustomDialog(
     vb: T,
-    block: (T, AlertDialog) -> Unit
+    block: (T, androidx.appcompat.app.AlertDialog) -> Unit
 ) {
     val materialAlertDialogBuilder =
         MaterialAlertDialogBuilder(this, R.style.AlertDialogRounded)
@@ -2281,6 +2294,29 @@ inline fun <T : ViewBinding> Context.showCustomDialog(
                 setView(vb.root)
             }
     val alertDialog = materialAlertDialogBuilder.create().apply {
+        //window?.setBackgroundDrawableResource(android.R.color.transparent)
+        show()
+    }
+    vb.apply {
+        block(this, alertDialog)
+    }
+}
+
+inline fun <T : ViewBinding> Context.showCustomDialog(
+    vb: T,
+    themeStyle: Int? = null,
+    block: (viewBinding: T, alertDialog: androidx.appcompat.app.AlertDialog) -> Unit
+) {
+    val materialAlertDialogBuilder = themeStyle?.let {
+        MaterialAlertDialogBuilder(
+            this,
+            themeStyle
+        )
+    } ?: MaterialAlertDialogBuilder(this)
+    val alertDialog = materialAlertDialogBuilder.apply {
+        setCancelable(false)
+        setView(vb.root)
+    }.create().apply {
         //window?.setBackgroundDrawableResource(android.R.color.transparent)
         show()
     }
@@ -2299,4 +2335,197 @@ fun getColorWithAlpha(color: Int, ratio: Float): Int {
 
 fun String.isNumeric(): Boolean { //toIntOrNull() -> for safely converting string to int
     return this.all { char -> char.isDigit() }
+}
+
+
+
+inline fun Context.showCustomAlertDialog(
+    title: String?,
+    message: String?,
+    positiveButtonText: String,
+    negativeButtonText: String?,
+    crossinline onAction: (Boolean) -> Unit
+) {
+    androidx.appcompat.app.AlertDialog.Builder(this).apply {
+        setCancelable(false)
+        title?.let { setTitle(it) }
+        message?.let { setMessage(it) }
+        setPositiveButton(positiveButtonText) { dialog, which ->
+            dialog.dismiss()
+            onAction(true)
+        }
+        negativeButtonText?.let {
+            setNegativeButton(negativeButtonText) { dialog, which ->
+                dialog.dismiss()
+                onAction(false)
+            }
+        }
+    }.also {
+        it.create().show()
+    }
+}
+
+fun EditText.onTextChangedAsStateFlow(): StateFlow<String> {
+    val inputText = MutableStateFlow("")
+    if (isFocusable){
+        doOnTextChanged { text, _, _, _ ->
+            inputText.value = text.toString()
+        }
+    }
+    return inputText
+}
+
+fun vectorToBitmap(
+    context: Context,
+    @DrawableRes id: Int,
+    @ColorInt color: Int? = null
+): BitmapDescriptor {
+    val vectorDrawable = ResourcesCompat.getDrawable(context.resources, id, null)
+        ?: return BitmapDescriptorFactory.defaultMarker()
+    val bitmap = Bitmap.createBitmap(
+        vectorDrawable.intrinsicWidth,
+        vectorDrawable.intrinsicHeight,
+        Bitmap.Config.ARGB_8888
+    )
+    val canvas = Canvas(bitmap)
+    vectorDrawable.setBounds(0, 0, canvas.width, canvas.height)
+    color?.let { col ->
+        DrawableCompat.setTint(vectorDrawable, col)
+    }
+    vectorDrawable.draw(canvas)
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+private fun Context.getAddressFromLocation(latLng: LatLng, block: (String) -> Unit) {
+    try {
+        val gCoder = Geocoder(this, Locale.getDefault())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            gCoder.getFromLocation(
+                latLng.latitude, latLng.longitude, 1
+            ){ addressList ->
+                addressList.firstOrNull()?.getAddressLine(0)?.let {
+                    block(it)
+                }
+            }
+        }else{
+            val addressList = gCoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+            addressList?.firstOrNull()?.getAddressLine(0)?.let {
+                block(it)
+            }
+        }
+    } catch (exc: IOException) {
+        exc.printStackTrace()
+    }
+}
+
+fun bearingBetweenLocations(latLng1: LatLng, latLng2: LatLng): Float {
+    val pi = 3.14159
+    val lat1 = latLng1.latitude * pi / 180
+    val long1 = latLng1.longitude * pi / 180
+    val lat2 = latLng2.latitude * pi / 180
+    val long2 = latLng2.longitude * pi / 180
+    val dLon = long2 - long1
+    val y = sin(dLon) * cos(lat2)
+    val x = cos(lat1) * sin(lat2) - (sin(lat1)
+            * cos(lat2) * cos(dLon))
+    var bearing = atan2(y, x)
+    bearing = Math.toDegrees(bearing)
+    bearing = (bearing + 360) % 360
+    return bearing.toFloat()
+}
+
+
+/**
+ * To bounds
+ * Converting latlng to latlng bounds for the given radius
+ *
+ * @param radius
+ * @return
+ */
+fun LatLng.toBounds(radius: Double): LatLngBounds {
+    val distance = radius * sqrt(2.0)
+    val ne = SphericalUtil.computeOffset(this, distance, 45.0)
+    val sw = SphericalUtil.computeOffset(this, distance, 225.0)
+    return LatLngBounds(sw, ne)
+}
+
+inline fun Context.showDatePickerFutureDates(
+    fragmentManager: androidx.fragment.app.FragmentManager,
+    crossinline onDatePicked: (date: Long) -> Unit
+) {
+    val datePicker =
+        MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Pickup Date")
+            .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+            .setCalendarConstraints(
+                CalendarConstraints.Builder().setValidator(DateValidatorPointForward.now()).build()
+            )
+            .build()
+    datePicker.show(fragmentManager, "Date Picker")
+    datePicker.addOnPositiveButtonClickListener {
+        datePicker.selection?.let { longDate ->
+            onDatePicked(longDate)
+        }
+
+    }
+}
+
+inline fun Context.showTimePicker(
+    fragmentManager: androidx.fragment.app.FragmentManager,
+    crossinline onTimePicked: (String) -> Unit
+) {
+    val picker =
+        MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_24H)
+            .setTitleText("Pickup Time")
+            .setHour(LocalTime.now().hour)
+            .setMinute(LocalTime.now().minute)
+            .setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK)
+            .build()
+    picker.show(fragmentManager, "TimePicker")
+    picker.addOnPositiveButtonClickListener {
+        onTimePicked(String.format(Locale.getDefault(), "%02d:%02d:00", picker.hour, picker.minute))
+        picker.dismiss()
+    }
+}
+
+fun AppCompatActivity.downloadFileUsingDownloadManager(url: String, fileName: String) {
+    checkForStoragePermissions {
+        val mgr = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val request = DownloadManager.Request(Uri.parse(url))
+            .setNotificationVisibility(
+                DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+            )
+            .setDestinationInExternalPublicDir(
+                Environment.DIRECTORY_DOWNLOADS, fileName
+            )
+        mgr.enqueue(request)
+        toast(getString(R.string.download_started))
+    }
+}
+
+fun Context.dialIntent(phoneNumber: String) {
+    try {
+        Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNumber")).also {
+            startActivity(it)
+        }
+    } catch (e: Exception) {
+        toast(e.message.toString())
+    }
+}
+
+fun Int.ordinalOf(): String {
+    val iAbs = this.absoluteValue
+    return "$this" + if (iAbs % 100 in 11..13) "th" else when (iAbs % 10) {
+        1 -> "st"
+        2 -> "nd"
+        3 -> "rd"
+        else -> "th"
+    }
+}
+
+inline fun String.ifNotEmpty(block: (String) -> Unit) {
+    if (isNotEmpty()) {
+        block(this)
+    }
 }
