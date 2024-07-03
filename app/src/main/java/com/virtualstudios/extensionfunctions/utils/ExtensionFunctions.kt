@@ -38,6 +38,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Parcelable
 import android.os.SystemClock
+import android.telephony.TelephonyManager
 import android.text.Editable
 import android.text.Html
 import android.text.InputFilter
@@ -129,6 +130,7 @@ import com.google.gson.JsonSyntaxException
 import com.google.i18n.phonenumbers.NumberParseException
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.maps.android.SphericalUtil
+import com.google.maps.model.LatLng
 import com.virtualstudios.extensionfunctions.BuildConfig
 import com.virtualstudios.extensionfunctions.R
 import kotlinx.coroutines.CoroutineScope
@@ -692,7 +694,7 @@ fun Context.getAsColor(id: Int) = ContextCompat.getColor(this, id)
  * @param tag
  * @param message
  */
-fun Any.logDebug(tag: String = "", message: String) {
+fun Any.logDebug(message: String, tag: String = "",) {
     if (BuildConfig.DEBUG) {
         // Log.d(this::class.java.simpleName, message)
         Log.d(tag.ifEmpty { "lOGD" }, message)
@@ -2528,4 +2530,47 @@ inline fun String.ifNotEmpty(block: (String) -> Unit) {
     if (isNotEmpty()) {
         block(this)
     }
+}
+
+fun Context.detectedDefaultCountry(): String? {
+    return detectSIMCountry()
+        ?: detectNetworkCountry()
+        ?: detectLocaleCountry()
+
+}
+
+private fun Context.detectSIMCountry(): String? {
+    try {
+        val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        logDebug("detectSIMCountry: ${telephonyManager.simCountryIso}")
+        return telephonyManager.simCountryIso
+    }
+    catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return null
+}
+
+private fun Context.detectNetworkCountry(): String? {
+    try {
+        val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        logDebug("detectNetworkCountry: ${telephonyManager.networkCountryIso}")
+        return telephonyManager.networkCountryIso
+    }
+    catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return null
+}
+
+private fun Context.detectLocaleCountry(): String? {
+    try {
+        val localeCountryISO = resources.configuration.locales[0].country
+        logDebug("detectLocaleCountry: $localeCountryISO")
+        return localeCountryISO
+    }
+    catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return null
 }
