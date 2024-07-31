@@ -271,3 +271,83 @@ sealed class UiText {
         }
     }
 }
+
+sealed interface Result<out D, out E: Error> {
+    data class Success<out D>(val data: D): Result<D, Nothing>
+    data class Error<out E: com.virtualstudios.extensionfunctions.remote.Error>(val error: E): Result<Nothing, E>
+}
+
+inline fun <T, E: Error, R> Result<T, E>.map(map: (T) -> R): Result<R, E> {
+    return when(this) {
+        is Result.Error -> Result.Error(error)
+        is Result.Success -> Result.Success(map(data))
+    }
+}
+
+fun <T, E: Error> Result<T, E>.asEmptyDataResult(): EmptyResult<E> {
+    return map {  }
+}
+
+inline fun <T, E: Error> Result<T, E>.onSuccess(action: (T) -> Unit): Result<T, E> {
+    return when(this) {
+        is Result.Error -> this
+        is Result.Success -> {
+            action(data)
+            this
+        }
+    }
+}
+inline fun <T, E: Error> Result<T, E>.onError(action: (E) -> Unit): Result<T, E> {
+    return when(this) {
+        is Result.Error -> {
+            action(error)
+            this
+        }
+        is Result.Success -> this
+    }
+}
+
+typealias EmptyResult<E> = Result<Unit, E>
+
+interface Error
+
+enum class NetworkError : Error {
+    REQUEST_TIMEOUT,
+    UNAUTHORIZED,
+    CONFLICT,
+    TOO_MANY_REQUESTS,
+    NO_INTERNET,
+    PAYLOAD_TOO_LARGE,
+    SERVER_ERROR,
+    SERIALIZATION,
+    UNKNOWN;
+}
+
+/*
+using ktor
+suspend fun censorWords(uncensored: String): Result<String, NetworkError> {
+    val response = try {
+        httpClient.get(
+            urlString = "https://www.purgomalum.com/service/json"
+        ) {
+            parameter("text", uncensored)
+        }
+    } catch(e: UnresolvedAddressException) {
+        return Result.Error(NetworkError.NO_INTERNET)
+    } catch(e: SerializationException) {
+        return Result.Error(NetworkError.SERIALIZATION)
+    }
+
+    return when(response.status.value) {
+        in 200..299 -> {
+            val censoredText = response.body<CensoredText>()
+            Result.Success(censoredText.result)
+        }
+        401 -> Result.Error(NetworkError.UNAUTHORIZED)
+        409 -> Result.Error(NetworkError.CONFLICT)
+        408 -> Result.Error(NetworkError.REQUEST_TIMEOUT)
+        413 -> Result.Error(NetworkError.PAYLOAD_TOO_LARGE)
+        in 500..599 -> Result.Error(NetworkError.SERVER_ERROR)
+        else -> Result.Error(NetworkError.UNKNOWN)
+    }
+}*/
