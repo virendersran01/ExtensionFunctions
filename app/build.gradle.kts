@@ -11,24 +11,27 @@ plugins {
     alias(libs.plugins.crashlytics)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     //kotlin("kapt")
-    id("org.jetbrains.kotlin.plugin.compose")
+    //alias(libs.plugins.compose)
+    id ("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
 }
 
 
 android {
     namespace = "com.virtualstudios.extensionfunctions"
-    compileSdk  = 34
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "com.virtualstudios.extensionfunctions"
-        minSdk = 21
-        targetSdk = 34
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
 
         val date = LocalDate.now()
         val formattedDate = date.format(DateTimeFormatter.ofPattern("yyyy-MMM-dd"))
         setProperty("archivesBaseName", "VSTest_$formattedDate")
+
+        vectorDrawables.useSupportLibrary = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,10 +43,20 @@ android {
             storePassword = "password"
             storeFile = file("keystore.jks")
         }
+        // Important: change the keystore for a production deployment
+       /* val userKeystore = File(System.getProperty("user.home"), ".android/debug.keystore")
+        val localKeystore = rootProject.file("debug_2.keystore")
+        val hasKeyInfo = userKeystore.exists()
+        create("release") {
+            storeFile = if (hasKeyInfo) userKeystore else localKeystore
+            storePassword = if (hasKeyInfo) "android" else System.getenv("compose_store_password")
+            keyAlias = if (hasKeyInfo) "androiddebugkey" else System.getenv("compose_key_alias")
+            keyPassword = if (hasKeyInfo) "android" else System.getenv("compose_key_password")
+        }*/
     }
 
     buildTypes {
-        release {
+        getByName("debug") {
             signingConfig = signingConfigs.getByName("config")
             isMinifyEnabled = false
             proguardFiles(
@@ -52,14 +65,14 @@ android {
             )
         }
 
-        debug {
+        getByName("release") {
+            isMinifyEnabled = true
+            //signingConfig = signingConfigs.getByName("release")
             signingConfig = signingConfigs.getByName("config")
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro")
         }
+
     }
     compileOptions {
         isCoreLibraryDesugaringEnabled  = true
@@ -83,6 +96,20 @@ android {
 //    kotlin {
 //        jvmToolchain(11)
 //    }
+
+    packaging.resources {
+        // Multiple dependency bring these files in. Exclude them to enable
+        // our test APK to build (has no effect on our AARs)
+        excludes += "/META-INF/AL2.0"
+        excludes += "/META-INF/LGPL2.1"
+    }
+}
+
+composeCompiler {
+    //enableStrongSkippingMode = true
+}
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
@@ -93,9 +120,6 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.androidx.swiperefreshlayout)
 
     implementation(libs.ccp)
@@ -152,38 +176,75 @@ dependencies {
     implementation ("androidx.preference:preference-ktx:1.2.1")
 
 
-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
-    testImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
+//    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+//    testImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
+//    androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
+//
+//    implementation ("androidx.compose.runtime:runtime")
+//    implementation ("androidx.compose.ui:ui")
+//    implementation ("androidx.compose.foundation:foundation-layout")
+//    implementation ("androidx.compose.material:material")
+//    implementation ("androidx.compose.material:material-icons-extended")
+//    implementation ("androidx.compose.foundation:foundation")
+//    implementation ("androidx.compose.animation:animation")
+//    implementation ("androidx.compose.ui:ui-tooling-preview")
+//    implementation ("androidx.compose.runtime:runtime-livedata")
+//    debugImplementation ("androidx.compose.ui:ui-tooling")
+//    debugImplementation ("androidx.compose.ui:ui-test-manifest")
+//    testImplementation ("androidx.compose.ui:ui-test-junit4")
+//    androidTestImplementation ("androidx.compose.ui:ui-test")
+//    androidTestImplementation ("androidx.compose.ui:ui-test-junit4")
+//
+//    implementation ("com.google.accompanist:accompanist-swiperefresh:0.34.0")
+//    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
+//
+//    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
+//
+//    implementation ("androidx.navigation:navigation-compose:2.7.7")
+//    implementation ("androidx.appcompat:appcompat:1.7.0")
+//    implementation ("androidx.activity:activity-ktx:1.9.0")
+//    implementation ("androidx.core:core-ktx:1.13.1")
+//    implementation ("androidx.activity:activity-compose:1.9.0")
+//
+//    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
+//    implementation ("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.2")
+//    implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.8.2")
 
-    implementation ("androidx.compose.runtime:runtime")
-    implementation ("androidx.compose.ui:ui")
-    implementation ("androidx.compose.foundation:foundation-layout")
-    implementation ("androidx.compose.material:material")
-    implementation ("androidx.compose.material:material-icons-extended")
-    implementation ("androidx.compose.foundation:foundation")
-    implementation ("androidx.compose.animation:animation")
-    implementation ("androidx.compose.ui:ui-tooling-preview")
-    implementation ("androidx.compose.runtime:runtime-livedata")
-    debugImplementation ("androidx.compose.ui:ui-tooling")
-    debugImplementation ("androidx.compose.ui:ui-test-manifest")
-    testImplementation ("androidx.compose.ui:ui-test-junit4")
-    androidTestImplementation ("androidx.compose.ui:ui-test")
-    androidTestImplementation ("androidx.compose.ui:ui-test-junit4")
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
 
-    implementation ("com.google.accompanist:accompanist-swiperefresh:0.34.0")
-    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.kotlinx.coroutines.android)
 
-    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
+    implementation(libs.androidx.activity.compose)
 
-    implementation ("androidx.navigation:navigation-compose:2.7.7")
-    implementation ("androidx.appcompat:appcompat:1.7.0")
-    implementation ("androidx.activity:activity-ktx:1.9.0")
-    implementation ("androidx.core:core-ktx:1.13.1")
-    implementation ("androidx.activity:activity-compose:1.9.0")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.lifecycle.viewModelCompose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.navigation.ui.ktx)
 
-    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
-    implementation ("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.2")
-    implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.8.2")
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.iconsExtended)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.compose.ui.util)
+    implementation(libs.androidx.compose.ui.viewbinding)
+    implementation(libs.androidx.compose.ui.googlefonts)
+
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
 }
 
