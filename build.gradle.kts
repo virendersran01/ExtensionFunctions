@@ -7,5 +7,6 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.google.services) apply false
     alias(libs.plugins.crashlytics) apply false
+    id ("org.jetbrains.kotlin.plugin.compose") version "2.0.0" apply false
 }
 true

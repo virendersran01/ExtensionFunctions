@@ -28,6 +28,7 @@ import android.graphics.drawable.Drawable
 import android.location.Geocoder
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.NetworkInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
@@ -88,7 +89,6 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
 import androidx.constraintlayout.widget.ConstraintSet
-import androidx.constraintlayout.widget.Placeholder
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
@@ -133,6 +133,7 @@ import com.google.maps.android.SphericalUtil
 import com.google.maps.model.LatLng
 import com.virtualstudios.extensionfunctions.BuildConfig
 import com.virtualstudios.extensionfunctions.R
+import com.virtualstudios.extensionfunctions.permissions.checkForStoragePermissions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -694,7 +695,7 @@ fun Context.getAsColor(id: Int) = ContextCompat.getColor(this, id)
  * @param tag
  * @param message
  */
-fun Any.logDebug(message: String, tag: String = "",) {
+fun Any.logDebug(message: String, tag: String = "") {
     if (BuildConfig.DEBUG) {
         // Log.d(this::class.java.simpleName, message)
         Log.d(tag.ifEmpty { "lOGD" }, message)
@@ -2573,4 +2574,65 @@ private fun Context.detectLocaleCountry(): String? {
         e.printStackTrace()
     }
     return null
+}
+
+
+fun isNetworkAvailable(context: Context): Boolean {
+    val connectivity = context
+        .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    if (connectivity == null) {
+        return false
+    } else {
+        val info = connectivity.allNetworkInfo
+        if (info != null) {
+            for (i in info.indices) {
+                if (info[i].state == NetworkInfo.State.CONNECTED) {
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
+
+fun isNetworkAvailable(activity: Activity): Boolean {
+    try {
+        val connectivity =
+            activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (connectivity == null) {
+            return false
+        } else {
+            val info = connectivity.allNetworkInfo
+            if (info != null) {
+                for (i in info.indices) {
+                    if (info[i].state == NetworkInfo.State.CONNECTED) {
+                        return true
+                    }
+                }
+            }
+        }
+    } catch (e: java.lang.Exception) {
+        e.printStackTrace()
+    }
+
+    return false
+}
+
+/**
+ * @param context
+ * @return True if Device is connected to network && context is not null
+ */
+fun isNetworkAvailable(context: Context?): Boolean {
+    if (context == null) return false
+    val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            ?: return false
+    val activeNetworkInfo = connectivityManager.activeNetworkInfo
+    return activeNetworkInfo != null && activeNetworkInfo.isConnected
+}
+
+fun <E> MutableSet<E>.addOrRemove(element: E) {
+    if (!add(element)) {
+        remove(element)
+    }
 }
