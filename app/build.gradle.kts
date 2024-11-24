@@ -13,6 +13,7 @@ plugins {
     //kotlin("kapt")
     //alias(libs.plugins.compose)
     id ("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    alias(libs.plugins.kotlin.serialization)
 }
 
 
@@ -246,5 +247,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.core)
+
+    implementation(libs.bundles.koin)
+    implementation(libs.bundles.ktor)
 }
 

@@ -12,5 +12,6 @@ plugins {
     alias(libs.plugins.kotlin.parcelize) apply false
     //alias(libs.plugins.compose) apply false
     id ("org.jetbrains.kotlin.plugin.compose") version "2.0.0" apply false
+    alias(libs.plugins.kotlin.serialization) apply false
 }
 apply("${project.rootDir}/buildscripts/toml-updater-config.gradle")

@@ -100,7 +100,8 @@ secrets = "2.0.1"
 # @keep
 targetSdk = "33"
 version-catalog-update = "0.8.4"
-
+ktor = "2.3.12"
+koin = "3.5.6"
 
 [libraries]
 android-image-cropper = { module = "com.vanniktech:android-image-cropper", version.ref = "android-image-cropper" }
@@ -252,9 +253,45 @@ roborazzi-rule = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule"
 rometools-modules = { module = "com.rometools:rome-modules", version.ref = "rome" }
 rometools-rome = { module = "com.rometools:rome", version.ref = "rome" }
 
+koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
+koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
+koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 [bundles]
 firebase = ["firebase-crashlytics", "firebase-auth", "firebase-messaging"]
+#compose = [
+#    "androidx-activity-compose",
+#    "androidx-lifecycle-runtime-compose",
+#    "androidx-lifecycle-viewmodel-compose",
+#    "androidx-material3",
+#    "androidx-ui",
+#    "androidx-ui-graphics",
+#    "androidx-ui-tooling-preview",
+#    "androidx-compose-material3-adaptive-navigation",
+#    "compose-material-icons-extended"
+#]
+#compose-debug = [
+#    "androidx-ui-tooling",
+#    "androidx-ui-test-manifest",
+#]
+
+koin = [
+    "koin-core",
+    "koin-android",
+    "koin-androidx-compose"
+]
+ktor = [
+    "ktor-client-cio",
+    "ktor-client-content-negotiation",
+    "ktor-client-core",
+    "ktor-client-logging",
+    "ktor-serialization-kotlinx-json"
+]
 
 
 [plugins]
@@ -274,3 +311,4 @@ kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
