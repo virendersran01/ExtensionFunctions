@@ -1,4 +1,4 @@
-package com.virtualstudios.extensionfunctions.compose
+package com.virtualstudios.extensionfunctions.compose.exts
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn

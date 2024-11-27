@@ -1,4 +1,4 @@
-package com.virtualstudios.extensionfunctions.compose
+package com.virtualstudios.extensionfunctions.compose.components
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable

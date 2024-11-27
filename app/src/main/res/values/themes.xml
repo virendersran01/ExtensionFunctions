@@ -23,7 +23,9 @@
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
         <item name="windowSplashScreenAnimationDuration">500</item>
         <item name="postSplashScreenTheme">@style/Theme.ExtensionFunctions</item>
-        <item name="android:windowSplashScreenBrandingImage" tools:targetApi="s">@mipmap/ic_launcher_round</item>
+        <item name="android:windowSplashScreenBrandingImage" tools:targetApi="s">
+            @mipmap/ic_launcher_round
+        </item>
     </style>
 
     <!--    Dialog Style-->

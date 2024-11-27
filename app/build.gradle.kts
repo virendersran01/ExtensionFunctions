@@ -127,6 +127,10 @@ dependencies {
     implementation(libs.libphonenumber)
     implementation(libs.pinview)
     implementation(libs.android.image.cropper)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     //Lifecycle
