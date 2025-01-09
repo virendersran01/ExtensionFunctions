@@ -33,6 +33,7 @@ class ExceptionHandler(val context: Context) : Thread.UncaughtExceptionHandler {
             append("Release: ${Build.VERSION.RELEASE}$LINE_SEPARATOR")
         }
 
+        LogReport.writeLog("errorReport: $errorReport")
         Intent(context, ExceptionLogActivity::class.java).apply {
             putExtra("exceptionlog", errorReport)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
