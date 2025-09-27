@@ -351,3 +351,370 @@ suspend fun censorWords(uncensored: String): Result<String, NetworkError> {
         else -> Result.Error(NetworkError.UNKNOWN)
     }
 }*/
+
+
+sealed interface UiState<out T> {
+    object Idle : UiState<Nothing>
+    object Loading : UiState<Nothing>
+    object Empty : UiState<Nothing>
+    data class Success<T>(val data: T,  val message: String? = null) : UiState<T>
+    data class Error(
+        val message: String? = null,
+        val throwable: Throwable? = null,
+        val exception: Throwable? = null,
+        val errorType: ErrorType = ErrorType.GENERIC
+    ) : UiState<Nothing>
+
+    enum class ErrorType {
+        NETWORK,
+        AUTH,
+        VALIDATION,
+        SERVER,
+        GENERIC
+    }
+}
+
+// Extension functions for easier UiState handling
+inline fun <T> UiState<T>.onLoading(action: () -> Unit): UiState<T> {
+    if (this is UiState.Loading) action()
+    return this
+}
+
+inline fun <T> UiState<T>.onSuccess(action: (T) -> Unit): UiState<T> {
+    if (this is UiState.Success) action(data)
+    return this
+}
+
+inline fun <T> UiState<T>.onError(action: (UiState.Error) -> Unit): UiState<T> {
+    if (this is UiState.Error) action(this)
+    return this
+}
+
+inline fun <ResultType, RequestType> networkBoundResource(
+    crossinline query: () -> Flow<ResultType>,
+    crossinline fetch: suspend () -> RequestType,
+    crossinline save: suspend (RequestType) -> Unit,
+    crossinline shouldFetch: (ResultType) -> Boolean = { true }
+): Flow<ResultType> = flow {
+    // 1) Observe local data first
+    val data = query().first()
+    emit(data)
+    // 2) Decide if remote fetch is needed
+    if (shouldFetch(data)) {
+        try {
+            val apiResponse =
+                fetch()                              // :contentReference[oaicite:5]{index=5}
+            save(apiResponse)                                      // :contentReference[oaicite:6]{index=6}
+        } catch (_: Exception) { /* handle error */
+        }
+    }
+    // 3) Emit updated local data
+    emitAll(query())
+}
+
+fun <T> networkBoundResourceWithApiResult(
+    query: () -> Flow<T>,
+    fetch: suspend () -> ApiResult<T>,
+    saveFetchResult: suspend (T) -> Unit,
+    shouldFetch: (T) -> Boolean = { true }
+): Flow<UiState<T>> = flow {
+    emit(UiState.Loading)
+
+    query().collect { data ->
+        if (shouldFetch(data)) {
+            when (val result = fetch()) {
+                is ApiResult.Success -> {
+                    result.data?.let { fetchedData ->
+                        try {
+                            saveFetchResult(fetchedData)
+                        } catch (e: Exception) {
+                            emit(UiState.Error("Failed to save: ${e.message}", e))
+                            return@collect
+                        }
+                    }
+                }
+                is ApiResult.Error -> {
+                    emit(UiState.Error(result.errorMessage, result.exception))
+                    return@collect
+                }
+            }
+        }
+        emit(UiState.Success(data))
+    }
+}
+
+// Option 1: Modified networkBoundResource that handles ApiResult internally
+inline fun <ResultType, RequestType> networkBoundResourceWithApiResult(
+    crossinline query: () -> Flow<ResultType>,
+    crossinline fetch: suspend () -> ApiResult<RequestType>,
+    crossinline save: suspend (RequestType) -> Unit,
+    crossinline shouldFetch: (ResultType) -> Boolean = { true },
+    crossinline onError: suspend (ApiResult.Error) -> Unit = { }
+): Flow<ResultType> = flow {
+    // 1) Observe local data first
+    val data = query().first()
+    emit(data)
+
+    // 2) Decide if remote fetch is needed
+    if (shouldFetch(data)) {
+        when (val apiResult = fetch()) {
+            is ApiResult.Success -> {
+                apiResult.data?.let { responseData ->
+                    try {
+                        save(responseData)
+                    } catch (e: Exception) {
+                        // Handle save error silently or log it
+                        logDebug("Failed to save data: ${e.message}")
+                    }
+                }
+            }
+            is ApiResult.Error -> {
+                // Handle error (log, analytics, etc.)
+                onError(apiResult)
+                logDebug("API Error: ${apiResult.errorMessage}")
+            }
+        }
+    }
+
+    // 3) Emit updated local data
+    emitAll(query())
+}
+
+// Option 2: Extension function on ApiResult for easier integration
+suspend inline fun <T> ApiResult<T>.onSuccessData(
+    crossinline action: suspend (T) -> Unit
+): ApiResult<T> {
+    if (this is ApiResult.Success && data != null) {
+        action(data)
+    }
+    return this
+}
+
+// Option 3: Simple wrapper that converts ApiResult to regular result
+inline fun <ResultType, RequestType> networkBoundResourceSimple(
+    crossinline query: () -> Flow<ResultType>,
+    crossinline fetchWithApiResult: suspend () -> ApiResult<RequestType>,
+    crossinline save: suspend (RequestType) -> Unit,
+    crossinline shouldFetch: (ResultType) -> Boolean = { true }
+): Flow<ResultType> = flow {
+    // 1) Observe local data first
+    val data = query().first()
+    emit(data)
+
+    // 2) Decide if remote fetch is needed
+    if (shouldFetch(data)) {
+        try {
+            // Convert ApiResult to exception-based approach
+            val apiResponse = when (val result = fetchWithApiResult()) {
+                is ApiResult.Success -> result.data ?: throw Exception("Data is null")
+                is ApiResult.Error -> throw result.exception
+            }
+            save(apiResponse)
+        } catch (e: Exception) {
+            // Handle error silently
+            logDebug("Network fetch failed: ${e.message}")
+        }
+    }
+
+    // 3) Emit updated local data
+    emitAll(query())
+}
+
+// Updated networkBoundResource with mapping support
+inline fun <DomainType, EntityType, RequestType> networkBoundResourceWithMappers(
+    crossinline query: () -> Flow<List<EntityType>>, // Room query returning entities
+    crossinline fetch: suspend () -> ApiResult<List<RequestType>>, // API call returning API models
+    crossinline mapApiToEntity: (List<RequestType>) -> List<EntityType>, // API to Entity mapper
+    crossinline mapEntityToDomain: (List<EntityType>) -> List<DomainType>, // Entity to Domain mapper
+    crossinline save: suspend (List<EntityType>) -> Unit, // Save entities to Room
+    crossinline shouldFetch: (List<EntityType>) -> Boolean = { true }
+): Flow<UiState<List<DomainType>>> = flow {
+
+    emit(UiState.Loading)
+
+    try {
+        // Get initial data from local source (entities)
+        val localEntities = query().first()
+
+        // Convert entities to domain models and emit if available
+        if (localEntities.isNotEmpty()) {
+            val domainModels = mapEntityToDomain(localEntities)
+            emit(UiState.Success(domainModels))
+        }
+
+        // Decide if we need to fetch from network
+        if (shouldFetch(localEntities)) {
+            when (val apiResult = fetch()) {
+                is ApiResult.Success -> {
+                    apiResult.data?.let { apiModels ->
+                        try {
+                            // Map API models to entities
+                            val entities = mapApiToEntity(apiModels)
+
+                            // Save entities to Room
+                            save(entities)
+
+                            // Get fresh data from Room and convert to domain
+                            val updatedEntities = query().first()
+                            val updatedDomainModels = mapEntityToDomain(updatedEntities)
+
+                            emit(UiState.Success(
+                                data = updatedDomainModels,
+                                message = apiResult.successMessage
+                            ))
+                        } catch (saveException: Exception) {
+                            emit(UiState.Error(
+                                message = "Failed to cache data: ${saveException.message}",
+                                exception = saveException
+                            ))
+                        }
+                    } ?: run {
+                        emit(UiState.Error(
+                            message = "No data received from server",
+                            errorType = UiState.ErrorType.SERVER
+                        ))
+                    }
+                }
+                is ApiResult.Error -> {
+                    val errorType = when (apiResult.exception) {
+                        is InvalidAuthorization -> UiState.ErrorType.AUTH
+                        is java.net.UnknownHostException,
+                        is java.net.SocketTimeoutException,
+                        is java.io.IOException -> UiState.ErrorType.NETWORK
+                        else -> UiState.ErrorType.SERVER
+                    }
+
+                    // If we have cached data, show it with error message
+                    if (localEntities.isNotEmpty()) {
+                        val cachedDomainModels = mapEntityToDomain(localEntities)
+                        emit(UiState.Success(
+                            data = cachedDomainModels,
+                            message = "Using cached data - ${apiResult.errorMessage}"
+                        ))
+                    } else {
+                        emit(UiState.Error(
+                            message = apiResult.errorMessage.ifBlank { "Network request failed" },
+                            exception = apiResult.exception,
+                            errorType = errorType
+                        ))
+                    }
+                }
+            }
+        }
+
+        // Continue to observe local data for any future changes
+        emitAll(
+            query().map { entities ->
+                val domainModels = mapEntityToDomain(entities)
+                UiState.Success(domainModels)
+            }
+        )
+
+    } catch (exception: Exception) {
+        emit(UiState.Error(
+            message = exception.message ?: "Unexpected error occurred",
+            exception = exception
+        ))
+    }
+}
+
+// Single item version
+inline fun <DomainType, EntityType, RequestType> networkBoundResourceSingleWithMappers(
+    crossinline query: () -> Flow<EntityType?>, // Room query returning single entity
+    crossinline fetch: suspend () -> ApiResult<RequestType>, // API call returning API model
+    crossinline mapApiToEntity: (RequestType) -> EntityType, // API to Entity mapper
+    crossinline mapEntityToDomain: (EntityType?) -> DomainType?, // Entity to Domain mapper
+    crossinline save: suspend (EntityType) -> Unit, // Save entity to Room
+    crossinline shouldFetch: (EntityType?) -> Boolean = { true }
+): Flow<UiState<DomainType?>> = flow {
+
+    emit(UiState.Loading)
+
+    try {
+        // Get initial data from local source
+        val localEntity = query().first()
+
+        // Convert entity to domain model and emit if available
+        localEntity?.let {
+            val domainModel = mapEntityToDomain(it)
+            emit(UiState.Success(domainModel))
+        }
+
+        // Decide if we need to fetch from network
+        if (shouldFetch(localEntity)) {
+            when (val apiResult = fetch()) {
+                is ApiResult.Success -> {
+                    apiResult.data?.let { apiModel ->
+                        try {
+                            // Map API model to entity
+                            val entity = mapApiToEntity(apiModel)
+
+                            // Save entity to Room
+                            save(entity)
+
+                            // Get fresh data from Room and convert to domain
+                            val updatedEntity = query().first()
+                            val updatedDomainModel = mapEntityToDomain(updatedEntity)
+
+                            emit(
+                                UiState.Success(
+                                    data = updatedDomainModel,
+                                    message = apiResult.successMessage
+                                )
+                            )
+                        } catch (saveException: Exception) {
+                            emit(
+                                UiState.Error(
+                                    message = "Failed to cache data: ${saveException.message}",
+                                    exception = saveException
+                                )
+                            )
+                        }
+                    }
+                }
+
+                is ApiResult.Error -> {
+                    val errorType = when (apiResult.exception) {
+                        is InvalidAuthorization -> UiState.ErrorType.AUTH
+                        is java.net.UnknownHostException -> UiState.ErrorType.NETWORK
+                        else -> UiState.ErrorType.SERVER
+                    }
+
+                    // If we have cached data, show it with error message
+                    localEntity?.let {
+                        val cachedDomainModel = mapEntityToDomain(it)
+                        emit(
+                            UiState.Success(
+                                data = cachedDomainModel,
+                                message = "Using cached data - ${apiResult.errorMessage}"
+                            )
+                        )
+                    } ?: emit(
+                        UiState.Error(
+                            message = apiResult.errorMessage,
+                            exception = apiResult.exception,
+                            //errorType = errorType
+                        )
+                    )
+                }
+            }
+        }
+
+        // Continue to observe local data for any future changes
+        emitAll(
+            query().map { entity ->
+                val domainModel = mapEntityToDomain(entity)
+                UiState.Success(domainModel)
+            }
+        )
+
+    } catch (exception: Exception) {
+        emit(
+            UiState.Error(
+                message = exception.message ?: "Unexpected error occurred",
+                exception = exception
+            )
+        )
+    }
+
+}
